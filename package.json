@@ -1,0 +1,53 @@
+{
+  "name": "@adobe/generator-aio-console",
+  "version": "0.1.0",
+  "description": "Adobe I/O Console project yeoman generator",
+  "main": "generators/app/index.js",
+  "scripts": {
+    "lint": "eslint generators lib",
+    "test": "npm run lint && jest -c ./jest.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adobe/generator-aio-console.git"
+  },
+  "keywords": [
+    "yeoman",
+    "generator",
+    "aio",
+    "adobeio",
+    "console",
+    "project"
+  ],
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "author": "Adobe Inc.",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/adobe/generator-aio-console/issues"
+  },
+  "homepage": "https://github.com/adobe/generator-aio-console#readme",
+  "devDependencies": {
+    "@adobe/eslint-config-aio-lib-config": "^1.2.0",
+    "@types/jest": "^25.1.0",
+    "eslint": "^6.0.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-jest": "^23.9.0",
+    "eslint-plugin-jsdoc": "^21.0.0",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "jest": "^24.9.0",
+    "yeoman-assert": "^3.1.1",
+    "yeoman-test": "^2.6.0"
+  },
+  "dependencies": {
+    "@adobe/aio-lib-console": "^1.0.2",
+    "fuzzy": "^0.1.3",
+    "inquirer-autocomplete-prompt": "^1.0.2",
+    "ora": "^4.0.4",
+    "yeoman-generator": "^4.2.0"
+  }
+}
