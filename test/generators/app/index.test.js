@@ -133,6 +133,7 @@ describe('run', () => {
 
     await helpers.run(theGeneratorPath).withOptions(options)
     assert.JSONFileContent('console.json', downloadWorkspaceJson)
+    expect(mockObject.downloadWorkspaceJson).toHaveBeenCalled()
     expect(mockObject.downloadWorkspaceJson).toHaveBeenCalledWith(orgs[0].id, projects[0].id, workspaces[0].id)
   })
 
@@ -199,6 +200,81 @@ describe('run', () => {
     await helpers.run(theGeneratorPath).withOptions(options)
     assert.JSONFileContent('console.json', downloadWorkspaceJson)
     expect(mockObject.downloadWorkspaceJson).toHaveBeenCalledWith(orgs[0].id, newProject.id, newWorkspace.id)
+  })
+
+  test('set workspace-id (will be nulled, since org-id and project-id not set)', async () => {
+    const options = {
+      'access-token': 'abc123',
+      'workspace-id': 'W567'
+    }
+
+    const orgs = [
+      {
+        id: '123',
+        code: 'foobar@MyOrg',
+        name: 'Foo Bar Org',
+        type: 'entp'
+      }
+    ]
+
+    const projects = [
+      {
+        id: '456',
+        name: 'My Project',
+        title: 'this is my project'
+      }
+    ]
+
+    const workspaces = [
+      {
+        id: '789',
+        name: 'My Workspace',
+        title: 'this is my workspace'
+      }
+    ]
+
+    const downloadWorkspaceJson = { name: projects[0].name }
+
+    const mockObject = consoleSdkMock({
+      orgs,
+      projects,
+      workspaces,
+      downloadWorkspaceJson
+    })
+
+    promptMock({
+      select: ['Foo Bar Org', 'My Project', 'My Workspace'],
+      input: 'My New Workspace'
+    })
+
+    await helpers.run(theGeneratorPath).withOptions(options)
+    assert.JSONFileContent('console.json', downloadWorkspaceJson)
+    expect(mockObject.downloadWorkspaceJson).toHaveBeenCalled()
+    expect(mockObject.downloadWorkspaceJson).toHaveBeenCalledWith(orgs[0].id, projects[0].id, workspaces[0].id)
+  })
+
+  test('test org-id, project-id, workspace-id set in options', async () => {
+    const orgId = 'O123'
+    const projectId = 'P456'
+    const workspaceId = 'W789'
+
+    const options = {
+      'access-token': 'abc123',
+      'allow-create': true,
+      'org-id': orgId,
+      'project-id': projectId,
+      'workspace-id': workspaceId
+    }
+
+    const downloadWorkspaceJson = { name: 'MyProject' }
+
+    const mockObject = consoleSdkMock({
+      downloadWorkspaceJson
+    })
+
+    await helpers.run(theGeneratorPath).withOptions(options)
+    assert.JSONFileContent('console.json', downloadWorkspaceJson)
+    expect(mockObject.downloadWorkspaceJson).toHaveBeenCalledWith(orgId, projectId, workspaceId)
   })
 
   test('exception in any call (getOrg, getProject, getWorkspace)', async () => {

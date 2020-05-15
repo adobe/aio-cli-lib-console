@@ -45,7 +45,10 @@ const Option = {
   API_KEY: 'api-key',
   ENV: 'ims-env',
   ALLOW_CREATE: 'allow-create',
-  PROJECT_TYPE: 'project-type'
+  PROJECT_TYPE: 'project-type',
+  ORG_ID: 'org-id',
+  PROJECT_ID: 'project-id',
+  WORKSPACE_ID: 'workspace-id'
 }
 
 class ConsoleGenerator extends Generator {
@@ -58,6 +61,10 @@ class ConsoleGenerator extends Generator {
     this.option(Option.ENV, { type: String, default: Default.ENV })
     this.option(Option.ALLOW_CREATE, { type: Boolean, default: Default.ALLOW_CREATE })
     this.option(Option.PROJECT_TYPE, { type: String, default: Default.PROJECT_TYPE })
+
+    this.option(Option.ORG_ID, { type: String })
+    this.option(Option.PROJECT_ID, { type: String })
+    this.option(Option.WORKSPACE_ID, { type: String })
 
     const env = this.options[Option.ENV]
     this.option(Option.API_KEY, { type: String, default: Default.API_KEY[env] })
@@ -76,6 +83,12 @@ class ConsoleGenerator extends Generator {
     this.customPrompt = prompt(this)
     this.allowCreate = this.options[Option.ALLOW_CREATE]
     this.projectType = this.options[Option.PROJECT_TYPE]
+
+    // hierarchy of ids:
+    // project id is invalid if org id is not set, workspace id is not valid if project id is not set, etc
+    this.orgId = this.options[Option.ORG_ID]
+    this.projectId = this.orgId ? this.options[Option.PROJECT_ID] : null
+    this.workspaceId = this.projectId ? this.options[Option.WORKSPACE_ID] : null
   }
 
   /**
@@ -84,6 +97,10 @@ class ConsoleGenerator extends Generator {
    * @returns {object} an Org record
    */
   async _getOrg () {
+    if (this.orgId) {
+      return { id: this.orgId }
+    }
+
     spinner.start()
 
     spinner.text = 'Getting organizations...'
@@ -105,6 +122,10 @@ class ConsoleGenerator extends Generator {
    * @returns {object} a Project record
    */
   async _getProject (orgId) {
+    if (this.projectId) {
+      return { id: this.projectId }
+    }
+
     spinner.start()
 
     spinner.text = 'Getting projects...'
@@ -151,6 +172,10 @@ class ConsoleGenerator extends Generator {
    * @returns {object} a Workspace record
    */
   async _getWorkspace (orgId, projectId) {
+    if (this.workspaceId) {
+      return { id: this.workspaceId }
+    }
+
     spinner.start()
 
     spinner.text = 'Getting workspaces...'
