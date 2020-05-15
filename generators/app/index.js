@@ -132,10 +132,10 @@ class ConsoleGenerator extends Generator {
     const projects = (await this.sdkClient.getProjectsForOrg(orgId)).body
     spinner.stop()
 
-    const projectsList = projects.map(item => item.name)
+    const projectsList = projects.map(item => item.title)
     const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
     const projectResult = await promptFunc('Project', projectsList)
-    let project = projects.find(item => item.name === projectResult)
+    let project = projects.find(item => item.title === projectResult)
 
     if (!project) { // create new
       console.log('Enter Project details:')

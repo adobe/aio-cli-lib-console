@@ -127,7 +127,7 @@ describe('run', () => {
     })
 
     promptMock({
-      select: ['Foo Bar Org', 'My Project', 'My Workspace'],
+      select: ['Foo Bar Org', 'this is my project', 'My Workspace'],
       input: 'My New Workspace'
     })
 
@@ -243,7 +243,7 @@ describe('run', () => {
     })
 
     promptMock({
-      select: ['Foo Bar Org', 'My Project', 'My Workspace'],
+      select: ['Foo Bar Org', 'this is my project', 'My Workspace'],
       input: 'My New Workspace'
     })
 
