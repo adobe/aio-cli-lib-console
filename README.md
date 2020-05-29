@@ -7,7 +7,7 @@ A Yeoman generator for bootstrapping an Adobe I/O Console Project.
 [![Build Status](https://travis-ci.com/adobe/generator-aio-console.svg)](https://travis-ci.com/adobe/generator-aio-console)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/generator-aio-console/master.svg?style=flat-square)](https://codecov.io/gh/adobe/generator-aio-console/)
-[![Greenkeeper badge](https://badges.greenkeeper.io/adobe/generator-aio-console.svg)](https://greenkeeper.io/)
+
 
 ## Usage
 
