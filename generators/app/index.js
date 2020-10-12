@@ -228,12 +228,12 @@ class ConsoleGenerator extends Generator {
   async writing () {
     spinner.start()
 
-    spinner.text = 'Downloading project config...'
+    spinner.text = 'Downloading project config..'
     const json = (await this.sdkClient.downloadWorkspaceJson(this.org.id, this.project.id, this.workspace.id)).body
     spinner.stop()
 
     // enhance configuration with supported services
-    spinner.start('Retrieving services supported by the Organization...')
+    spinner.start('Retrieving services supported by the Organization..')
     const res = await this.sdkClient.getServicesForOrg(json.project.org.id)
     json.project.org.details = {
       ...json.project.org.details,
