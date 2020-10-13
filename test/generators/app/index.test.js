@@ -53,19 +53,29 @@ function promptMock ({ select = [], selectOrCreate = [], input = [] } = {}) {
   })
 }
 
+const fakeDownloadWorkspaceJson = (orgId) => ({
+  project: {
+    org: {
+      id: orgId
+    }
+  }
+})
+
 /** @private */
 function consoleSdkMock ({
   orgs = [],
   projects = [],
   workspaces = [],
+  orgServices = [],
   createdWorkspace = {},
   createdProject = {},
   getWorkspace = {},
   getProject = {},
-  downloadWorkspaceJson = {}
+  downloadWorkspaceJson = fakeDownloadWorkspaceJson('fakeId')
 } = {}) {
   const mockObject = {
     init: jest.fn(),
+    getServicesForOrg: jest.fn(() => ({ body: orgServices })),
     getOrganizations: () => ({ body: orgs }),
     getProjectsForOrg: () => ({ body: projects }),
     getWorkspacesForProject: () => ({ body: workspaces }),
@@ -117,7 +127,10 @@ describe('run', () => {
       }
     ]
 
-    const downloadWorkspaceJson = { name: projects[0].name }
+    const downloadWorkspaceJson = {
+      ...fakeDownloadWorkspaceJson(orgs[0].id),
+      name: projects[0].name
+    }
 
     const mockObject = consoleSdkMock({
       orgs,
@@ -180,7 +193,10 @@ describe('run', () => {
       title: 'this is my new workspace'
     }
 
-    const downloadWorkspaceJson = { name: projects[0].name }
+    const downloadWorkspaceJson = {
+      ...fakeDownloadWorkspaceJson(orgs[0].id),
+      name: projects[0].name
+    }
 
     const mockObject = consoleSdkMock({
       orgs,
@@ -200,6 +216,7 @@ describe('run', () => {
     await helpers.run(theGeneratorPath).withOptions(options)
     assert.JSONFileContent('console.json', downloadWorkspaceJson)
     expect(mockObject.downloadWorkspaceJson).toHaveBeenCalledWith(orgs[0].id, newProject.id, newWorkspace.id)
+    expect(mockObject.getServicesForOrg).toHaveBeenCalledWith(orgs[0].id)
   })
 
   test('set workspace-id (will be nulled, since org-id and project-id not set)', async () => {
@@ -233,7 +250,10 @@ describe('run', () => {
       }
     ]
 
-    const downloadWorkspaceJson = { name: projects[0].name }
+    const downloadWorkspaceJson = {
+      ...fakeDownloadWorkspaceJson(orgs[0].id),
+      name: projects[0].name
+    }
 
     const mockObject = consoleSdkMock({
       orgs,
@@ -251,6 +271,7 @@ describe('run', () => {
     assert.JSONFileContent('console.json', downloadWorkspaceJson)
     expect(mockObject.downloadWorkspaceJson).toHaveBeenCalled()
     expect(mockObject.downloadWorkspaceJson).toHaveBeenCalledWith(orgs[0].id, projects[0].id, workspaces[0].id)
+    expect(mockObject.getServicesForOrg).toHaveBeenCalledWith(orgs[0].id)
   })
 
   test('test org-id, project-id, workspace-id set in options', async () => {
@@ -266,7 +287,10 @@ describe('run', () => {
       'workspace-id': workspaceId
     }
 
-    const downloadWorkspaceJson = { name: 'MyProject' }
+    const downloadWorkspaceJson = {
+      ...fakeDownloadWorkspaceJson(orgId),
+      name: 'MyProject'
+    }
 
     const mockObject = consoleSdkMock({
       downloadWorkspaceJson
@@ -287,4 +311,77 @@ describe('run', () => {
 
     await expect(helpers.run(theGeneratorPath).withOptions(options)).rejects.toEqual(expect.any(Error))
   })
+})
+
+test('test that supported services are added to the downloaded file', async () => {
+  // use options
+  const orgId = 'O123'
+  const projectId = 'P456'
+  const workspaceId = 'W789'
+
+  const options = {
+    'access-token': 'abc123',
+    'allow-create': true,
+    'org-id': orgId,
+    'project-id': projectId,
+    'workspace-id': workspaceId
+  }
+
+  const orgServices = [
+    {
+      name: 'the first service',
+      code: 'service1SDK',
+      enabled: true
+    },
+    {
+      name: 'the second service',
+      code: 'service2SDK',
+      enabled: false
+    },
+    {
+      name: 'the third service',
+      code: 'service2SDK',
+      enabled: false
+    },
+    {
+      name: 'the fourth service',
+      code: 'service4SDK',
+      enabled: true
+    }
+  ]
+
+  const downloadWorkspaceJson = {
+    ...fakeDownloadWorkspaceJson(orgId),
+    name: 'MyProject'
+  }
+
+  promptMock()
+
+  const mockObject = consoleSdkMock({
+    orgServices,
+    downloadWorkspaceJson
+  })
+
+  await helpers.run(theGeneratorPath).withOptions(options)
+
+  assert.JSONFileContent('console.json', {
+    ...downloadWorkspaceJson,
+    project: {
+      ...downloadWorkspaceJson.project,
+      org: {
+        ...downloadWorkspaceJson.org,
+        details: {
+          services: [{
+            name: 'the first service',
+            code: 'service1SDK'
+          },
+          {
+            name: 'the fourth service',
+            code: 'service4SDK'
+          }]
+        }
+      }
+    }
+  })
+  expect(mockObject.getServicesForOrg).toHaveBeenCalledWith(orgId)
 })

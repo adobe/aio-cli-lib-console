@@ -232,6 +232,15 @@ class ConsoleGenerator extends Generator {
     const json = (await this.sdkClient.downloadWorkspaceJson(this.org.id, this.project.id, this.workspace.id)).body
     spinner.stop()
 
+    // enhance configuration with supported services
+    spinner.start('Retrieving services supported by the Organization...')
+    const res = await this.sdkClient.getServicesForOrg(json.project.org.id)
+    json.project.org.details = {
+      ...json.project.org.details,
+      services: res.body.filter(s => s.enabled).map(s => ({ name: s.name, code: s.code }))
+    }
+    spinner.stop()
+
     this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
   }
 }
