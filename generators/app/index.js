@@ -155,8 +155,18 @@ class ConsoleGenerator extends Generator {
       const createdProject = (await this.sdkClient.createProject(orgId, { name, title, description, type: this.projectType })).body
 
       // get complete record
+      const projectId = createdProject.projectId
       spinner.text = 'Getting new project...'
-      project = (await this.sdkClient.getProject(orgId, createdProject.projectId)).body
+      project = (await this.sdkClient.getProject(orgId, projectId)).body
+
+      // create the missing stage workspace
+      spinner.text = 'Creating Stage workspace...'
+      await this.sdkClient.createWorkspace(orgId, project.id, { name: 'Stage' })
+
+      // enable runtime on the Production and Stage workspace
+      spinner.text = 'Enabling runtime...'
+      const workspaces = (await (this.sdkClient.getWorkspacesForProject(orgId, projectId))).body
+      await Promise.all(workspaces.map(w => this.sdkClient.createRuntimeNamespace(orgId, projectId, w.id)))
 
       spinner.stop()
     }
@@ -201,6 +211,10 @@ class ConsoleGenerator extends Generator {
 
       spinner.text = 'Creating workspace...'
       const createdWorkspace = (await this.sdkClient.createWorkspace(orgId, projectId, { name, title })).body
+
+      // enable runtime on the newly created workspace
+      spinner.text = 'Enabling runtime...'
+      await this.sdkClient.createRuntimeNamespace(orgId, projectId, createdWorkspace.workspaceId)
 
       // get complete record
       spinner.text = 'Getting new workspace...'
