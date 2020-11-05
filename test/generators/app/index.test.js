@@ -79,10 +79,11 @@ function consoleSdkMock ({
     getOrganizations: () => ({ body: orgs }),
     getProjectsForOrg: () => ({ body: projects }),
     getWorkspacesForProject: () => ({ body: workspaces }),
-    createWorkspace: () => ({ body: createdWorkspace }),
-    createProject: () => ({ body: createdProject }),
+    createWorkspace: jest.fn(() => ({ body: createdWorkspace })),
+    createProject: jest.fn(() => ({ body: createdProject })),
     getWorkspace: () => ({ body: getWorkspace }),
     getProject: () => ({ body: getProject }),
+    createRuntimeNamespace: jest.fn(),
     downloadWorkspaceJson: jest.fn(() => ({ body: downloadWorkspaceJson }))
   }
 
@@ -178,13 +179,19 @@ describe('run', () => {
         id: '789',
         name: 'My Workspace',
         title: 'this is my workspace'
+      },
+      {
+        id: '012',
+        name: 'My Workspace2',
+        title: 'this is my workspace'
       }
     ]
 
     const newProject = {
       id: 'ABC',
       name: 'My New Project',
-      title: 'this is my new project'
+      title: 'this is my new project',
+      description: 'a new project'
     }
 
     const newWorkspace = {
@@ -204,19 +211,33 @@ describe('run', () => {
       workspaces,
       downloadWorkspaceJson,
       getProject: newProject,
-      getWorkspace: newWorkspace
+      getWorkspace: newWorkspace,
+      createdWorkspace: { workspaceId: newWorkspace.id },
+      createdProject: { projectId: newProject.id }
     })
 
     promptMock({
       select: 'Foo Bar Org',
       selectOrCreate: ['My New Project', 'My New Workspace'],
-      input: ['My New Project', 'project name', 'project title', 'project description', 'My New Workspace', 'workspace name', 'workspace title']
+      input: [newProject.name, newProject.title, newProject.description, newWorkspace.name, newWorkspace.title, newWorkspace.description]
     })
 
     await helpers.run(theGeneratorPath).withOptions(options)
     assert.JSONFileContent('console.json', downloadWorkspaceJson)
     expect(mockObject.downloadWorkspaceJson).toHaveBeenCalledWith(orgs[0].id, newProject.id, newWorkspace.id)
     expect(mockObject.getServicesForOrg).toHaveBeenCalledWith(orgs[0].id)
+
+    // project creation
+    expect(mockObject.createProject).toHaveBeenCalledWith('123', { ...newProject, type: 'jaeger', id: undefined })
+    /// creates stage workspace
+    expect(mockObject.createWorkspace).toHaveBeenCalledWith(orgs[0].id, newProject.id, { name: 'Stage' })
+    /// enables runtime on all workspaces in new project
+    expect(mockObject.createRuntimeNamespace).toHaveBeenCalledWith(orgs[0].id, newProject.id, workspaces[0].id)
+    expect(mockObject.createRuntimeNamespace).toHaveBeenCalledWith(orgs[0].id, newProject.id, workspaces[1].id)
+
+    // workspace creation
+    expect(mockObject.createWorkspace).toHaveBeenCalledWith(orgs[0].id, newProject.id, { ...newWorkspace, id: undefined })
+    expect(mockObject.createRuntimeNamespace).toHaveBeenCalledWith(orgs[0].id, newProject.id, newWorkspace.id)
   })
 
   test('set workspace-id (will be nulled, since org-id and project-id not set)', async () => {
