@@ -13,7 +13,14 @@ const Generator = require('yeoman-generator')
 const consoleSdk = require('@adobe/aio-lib-console')
 const spinner = require('ora')()
 const prompt = require('../../lib/prompt')
-const { validateName, validateTitle } = require('../../lib/validate')
+const {
+  validateProjectName,
+  validateProjectTitle,
+  validateProjectDescription,
+  validateWorkspaceName,
+  validateWorkspaceTitle,
+  validateWorkspaceDescription
+} = require('../../lib/validate')
 
 /*
   'initializing',
@@ -103,7 +110,7 @@ class ConsoleGenerator extends Generator {
 
     spinner.start()
 
-    spinner.text = 'Getting organizations...'
+    spinner.text = 'Getting Organizations...'
     const orgs = (await this.sdkClient.getOrganizations()).body
 
     spinner.stop()
@@ -128,7 +135,7 @@ class ConsoleGenerator extends Generator {
 
     spinner.start()
 
-    spinner.text = 'Getting projects...'
+    spinner.text = 'Getting Projects...'
     const projects = (await this.sdkClient.getProjectsForOrg(orgId)).body
     spinner.stop()
 
@@ -140,29 +147,32 @@ class ConsoleGenerator extends Generator {
     if (!project) { // create new
       console.log('Enter Project details:')
       const name = await this.customPrompt.promptInput('Name', {
-        validate: validateName
+        validate: validateProjectName
       })
       const title = await this.customPrompt.promptInput('Title', {
-        validate: validateTitle
+        validate: validateProjectTitle
       })
-      const description = await this.customPrompt.promptInput('Description', { default: '' })
+      const description = await this.customPrompt.promptInput('Description', {
+        validate: validateProjectDescription,
+        default: ''
+      })
 
       spinner.start()
 
-      spinner.text = 'Creating project...'
+      spinner.text = 'Creating Project...'
       const createdProject = (await this.sdkClient.createProject(orgId, { name, title, description, type: this.projectType })).body
 
       // get complete record
       const projectId = createdProject.projectId
-      spinner.text = 'Getting new project...'
+      spinner.text = 'Getting new Project...'
       project = (await this.sdkClient.getProject(orgId, projectId)).body
 
       // create the missing stage workspace
-      spinner.text = 'Creating Stage workspace...'
+      spinner.text = 'Creating Stage Workspace...'
       await this.sdkClient.createWorkspace(orgId, project.id, { name: 'Stage' })
 
       // enable runtime on the Production and Stage workspace
-      spinner.text = 'Enabling runtime...'
+      spinner.text = 'Enabling Adobe I/O Runtime...'
       const workspaces = (await (this.sdkClient.getWorkspacesForProject(orgId, projectId))).body
       await Promise.all(workspaces.map(w => this.sdkClient.createRuntimeNamespace(orgId, projectId, w.id)))
 
@@ -186,7 +196,7 @@ class ConsoleGenerator extends Generator {
 
     spinner.start()
 
-    spinner.text = 'Getting workspaces...'
+    spinner.text = 'Getting Workspaces...'
     const workspaces = (await this.sdkClient.getWorkspacesForProject(orgId, projectId)).body
     spinner.stop()
 
@@ -198,24 +208,24 @@ class ConsoleGenerator extends Generator {
     if (!workspace) { // create new
       console.log('Enter Workspace details:')
       const name = await this.customPrompt.promptInput('Name', {
-        default: workspaceResult,
-        validate: validateName
+        validate: validateWorkspaceName
       })
       const title = await this.customPrompt.promptInput('Title', {
-        default: ''
+        default: '',
+        validate: validateWorkspaceTitle
       })
 
       spinner.start()
 
-      spinner.text = 'Creating workspace...'
+      spinner.text = 'Creating Workspace...'
       const createdWorkspace = (await this.sdkClient.createWorkspace(orgId, projectId, { name, title })).body
 
       // enable runtime on the newly created workspace
-      spinner.text = 'Enabling runtime...'
+      spinner.text = 'Enabling Adobe I/O Runtime...'
       await this.sdkClient.createRuntimeNamespace(orgId, projectId, createdWorkspace.workspaceId)
 
       // get complete record
-      spinner.text = 'Getting new workspace...'
+      spinner.text = 'Getting new Workspace...'
       workspace = (await this.sdkClient.getWorkspace(orgId, projectId, createdWorkspace.workspaceId)).body
 
       spinner.stop()
