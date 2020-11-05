@@ -72,7 +72,7 @@ class ConsoleGenerator extends Generator {
 
   async initializing () {
     this.env.adapter.promptModule.registerPrompt('autocomplete',
-      require('inquirer-autocomplete-prompt')
+      require('../../lib/inquirer-autocomplete-with-escape-prompt')
     )
 
     const env = this.options[Option.ENV]
@@ -140,11 +140,9 @@ class ConsoleGenerator extends Generator {
     if (!project) { // create new
       console.log('Enter Project details:')
       const name = await this.customPrompt.promptInput('Name', {
-        default: projectResult,
         validate: validateName
       })
       const title = await this.customPrompt.promptInput('Title', {
-        default: projectResult,
         validate: validateTitle
       })
       const description = await this.customPrompt.promptInput('Description', { default: '' })
