@@ -138,8 +138,8 @@ class ConsoleGenerator extends Generator {
     const projects = (await this.sdkClient.getProjectsForOrg(orgId)).body
     spinner.stop()
 
-    // show projects by title and reverse order to show latest first
-    const projectsList = projects.map(item => item.title).reverse()
+    // show projects by title and reverse order to show latest first, note reverse is in place, let's make sure project is not modified
+    const projectsList = [...projects.map(item => item.title)].reverse()
     const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
     const projectResult = await promptFunc('Project', projectsList)
     let project = projects.find(item => item.title === projectResult)
