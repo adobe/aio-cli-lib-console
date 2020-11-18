@@ -12,6 +12,10 @@ governing permissions and limitations under the License.
 const Generator = require('yeoman-generator')
 const consoleSdk = require('@adobe/aio-lib-console')
 const spinner = require('ora')()
+const certPlugin = require('@adobe/aio-cli-plugin-certificate')
+const fs = require('fs-extra')
+const path = require('path')
+
 const prompt = require('../../lib/prompt')
 const {
   validateProjectName,
@@ -42,7 +46,8 @@ const Default = {
   API_KEY: ApiKey,
   ENV: 'prod',
   ALLOW_CREATE: false,
-  PROJECT_TYPE: 'jaeger'
+  PROJECT_TYPE: 'jaeger',
+  CERT_VALID_DAYS: 365
 }
 
 const Option = {
@@ -54,7 +59,9 @@ const Option = {
   PROJECT_TYPE: 'project-type',
   ORG_ID: 'org-id',
   PROJECT_ID: 'project-id',
-  WORKSPACE_ID: 'workspace-id'
+  WORKSPACE_ID: 'workspace-id',
+  // path to the base directory to store generated certificates for new Workspace integrations
+  CERT_DIR: 'cert-dir'
 }
 
 class ConsoleGenerator extends Generator {
@@ -89,6 +96,7 @@ class ConsoleGenerator extends Generator {
     this.customPrompt = prompt(this)
     this.allowCreate = this.options[Option.ALLOW_CREATE]
     this.projectType = this.options[Option.PROJECT_TYPE]
+    this.certDir = this.options[Option.CERT_DIR]
 
     // hierarchy of ids:
     // project id is invalid if org id is not set, workspace id is not valid if project id is not set, etc
@@ -97,9 +105,50 @@ class ConsoleGenerator extends Generator {
     this.workspaceId = this.projectId ? this.options[Option.WORKSPACE_ID] : null
   }
 
+  async prompting () {
+    this.log('Retrieving information from Adobe I/O Console..')
+
+    try {
+      this.org = await this._getOrg()
+      this.project = await this._getProject(this.org.id)
+      this.workspace = await this._getWorkspace(this.org.id, this.project.id)
+      this.supportedServices = await this._getEnabledServicesForOrg(this.org.id)
+
+      // todo allow to create multiple workspaces, add same services to each ? Hmm actually that could be handled by aio app use switch..
+
+      if (this.project.isNew || this.workspace.isNew) {
+        // add services to newly created and selected workspace
+        await this._addServices(this.org.id, this.project, this.workspace, this.supportedServices, this.certDir)
+      }
+    } catch (e) {
+      spinner.stop()
+      throw e
+    }
+  }
+
+  async writing () {
+    spinner.start()
+
+    spinner.text = 'Downloading project config...'
+    const json = (await this.sdkClient.downloadWorkspaceJson(this.org.id, this.project.id, this.workspace.id)).body
+    spinner.stop()
+
+    // enhance configuration with supported services
+    json.project.org.details = {
+      ...json.project.org.details,
+      services: this.supportedServices.map(s => ({ name: s.name, code: s.code, type: s.type }))
+    }
+    spinner.stop()
+
+    this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
+  }
+
+  // helpers
+
   /**
    * Prompt to select for an Org.
    *
+   * @private
    * @returns {object} an Org record
    */
   async _getOrg () {
@@ -124,6 +173,7 @@ class ConsoleGenerator extends Generator {
   /**
    * Prompt to select a Project, or create a new one.
    *
+   * @private
    * @param {string} orgId the organization id
    * @returns {object} a Project record
    */
@@ -177,15 +227,18 @@ class ConsoleGenerator extends Generator {
       spinner.text = 'Getting new Project...'
       project = (await this.sdkClient.getProject(orgId, projectId)).body
 
-      spinner.stop()
-    }
+      project.isNew = true
 
+      spinner.stop()
+      project.isNew = true
+    }
     return project
   }
 
   /**
    * Prompt to select a workspace, or create a new one.
    *
+   * @private
    * @param {string} orgId the organization id
    * @param {string} projectId the project id
    * @returns {object} a Workspace record
@@ -230,41 +283,103 @@ class ConsoleGenerator extends Generator {
       workspace = (await this.sdkClient.getWorkspace(orgId, projectId, createdWorkspace.workspaceId)).body
 
       spinner.stop()
-    }
 
+      workspace.isNew = true
+    }
     return workspace
   }
 
-  async prompting () {
-    this.log('Retrieving information from Adobe I/O Console..')
-
-    try {
-      this.org = await this._getOrg()
-      this.project = await this._getProject(this.org.id)
-      this.workspace = await this._getWorkspace(this.org.id, this.project.id)
-    } catch (e) {
-      spinner.stop()
-      throw e
-    }
+  /**
+   * @private
+   * @memberof ConsoleGenerator
+   */
+  async _getEnabledServicesForOrg (orgId) {
+    spinner.start('Retrieving services supported by the Organization...')
+    const res = await this.sdkClient.getServicesForOrg(orgId)
+    spinner.stop()
+    return res.body.filter(s => s.enabled)
   }
 
-  async writing () {
-    spinner.start()
+  /**
+   * @private
+   * @memberof ConsoleGenerator
+   */
+  async _addServices (orgId, project, workspace, supportedServices, certDir) {
+    const serviceChoices = supportedServices
+      // we only support entp integrations for now
+      .filter(s => s.type === 'entp')
+      .map(s => ({ name: s.name, value: s }))
 
-    spinner.text = 'Downloading project config...'
-    const json = (await this.sdkClient.downloadWorkspaceJson(this.org.id, this.project.id, this.workspace.id)).body
-    spinner.stop()
+    const selectedServices = await this.customPrompt.promptMultiSelect(`Add Services to new Workspace '${workspace.name}'`, serviceChoices)
 
-    // enhance configuration with supported services
-    spinner.start('Retrieving services supported by the Organization...')
-    const res = await this.sdkClient.getServicesForOrg(json.project.org.id)
-    json.project.org.details = {
-      ...json.project.org.details,
-      services: res.body.filter(s => s.enabled).map(s => ({ name: s.name, code: s.code }))
+    // for each selected service, prompt to select from the licenseConfigs list
+    const selectedLicenseConfigs = {}
+    for (let i = 0; i < selectedServices.length; ++i) {
+      const s = selectedServices[i]
+      selectedLicenseConfigs[s.code] = null // default value
+      if (s.properties && s.properties.licenseConfigs) {
+        const licenseConfigsChoices = s.properties.licenseConfigs.map(s => ({
+          // display name
+          name: s.name,
+          // value returned, ready for subscribe API call
+          value: { op: 'add', id: s.id, productId: s.productId }
+        }))
+        const selection = await this.customPrompt.promptMultiSelect(
+                `Select Product Profiles for the service '${s.name}'`,
+                licenseConfigsChoices
+        )
+        selectedLicenseConfigs[s.code] = selection
+      }
     }
-    spinner.stop()
+    // todo think about confirmation ?
+    // todo2 add services in all workspaces ?
+    // todo3 ask for adding services from existing workspace ?
 
-    this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
+    if (selectedServices.length > 0) {
+      spinner.start(`Generating Credential key pair for Workspace ${workspace.name}...`)
+
+      // todo2 the certificate is only valid 365 days, this is shown in the console UI, but should we write a message here ?
+
+      const projectCertDir = path.join(certDir, `${this.org.id}-${this.project.name}`)
+      const publicKeyFileName = `${workspace.name}.pem`
+      const privateKeyFileName = `${workspace.name}.key}`
+      const publicKeyFilePath = path.join(projectCertDir, publicKeyFileName)
+      const privateKeyFilePath = path.join(projectCertDir, privateKeyFileName)
+      const { cert, privateKey } = certPlugin.generate(orgId + project.name + workspace.name, Default.CERT_VALID_DAYS)
+      fs.ensureDirSync(projectCertDir)
+      fs.writeFileSync(publicKeyFilePath, cert)
+      fs.writeFileSync(privateKeyFilePath, privateKey)
+      spinner.stopAndPersist({
+        text: `Key pair '${publicKeyFileName}, ${privateKeyFileName}' valid for '${Default.CERT_VALID_DAYS}' days, has been created into the folder: ${projectCertDir}`
+      })
+
+      spinner.start(`Creating Enterprise Credentials for Workspace ${workspace.name}...`)
+      const createCredentialResponse = await this.sdkClient.createEnterpriseCredential(
+        orgId,
+        project.id,
+        workspace.id,
+        fs.createReadStream(publicKeyFilePath),
+        workspace.name,
+        'Auto generated enterprise credentials from aio CLI'
+      )
+      const credentialId = createCredentialResponse.body.id
+
+      spinner.start(`Attaching Services to the Enterprise Credentials of Workspace ${workspace.name}...`)
+      const serviceInfo = selectedServices.map(s => ({
+        sdkCode: s.code,
+        licenseConfigs: selectedLicenseConfigs[s.code],
+        roles: (s.properties && s.properties.roles) || null
+      }))
+      await this.sdkClient.subscribeCredentialToServices(
+        orgId,
+        project.id,
+        workspace.id,
+        'entp',
+        credentialId,
+        serviceInfo
+      )
+      spinner.stop()
+    }
   }
 }
 
