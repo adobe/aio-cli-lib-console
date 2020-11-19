@@ -109,16 +109,35 @@ class ConsoleGenerator extends Generator {
     this.log('Retrieving information from Adobe I/O Console..')
 
     try {
-      this.org = await this._getOrg()
-      this.project = await this._getProject(this.org.id)
-      this.workspace = await this._getWorkspace(this.org.id, this.project.id)
-      this.supportedServices = await this._getEnabledServicesForOrg(this.org.id)
+      const { selectedOrg } = await this._getOrg()
+      const { selectedProject } = await this._getProject(selectedOrg.id)
+      const { selectedWorkspace, workspaces } = await this._getWorkspace(selectedOrg.id, selectedProject.id)
+
+      // persist selections
+      this.org = selectedOrg
+      this.project = selectedProject
+      this.workspace = selectedWorkspace
+
+      // get and persist support services in org
+      this.supportedServices = await this._getEnabledServicesForOrg(selectedOrg.id)
 
       // todo allow to create multiple workspaces, add same services to each ? Hmm actually that could be handled by aio app use switch..
-
-      if (this.project.isNew || this.workspace.isNew) {
-        // add services to newly created and selected workspace
-        await this._addServices(this.org.id, this.project, this.workspace, this.supportedServices, this.certDir)
+      // add services to newly created Workspace
+      if (selectedWorkspace.isNew) {
+        let hasServices = false
+        if (!selectedProject.isNew) {
+          // if the project isn't new allow to copy over services from another workspace
+          const confirmServiceClone = await this.customPrompt.promptConfirm(
+            `Do you wish to clone service subscriptions from another Workspace into ${selectedWorkspace.name}?`
+          )
+          if (confirmServiceClone) {
+            hasServices = await this._cloneServices(selectedOrg.id, selectedProject, selectedWorkspace, workspaces, this.certDir)
+          }
+        }
+        if (!hasServices) {
+          // prompt and add services to workspace
+          await this._addServices(this.org.id, this.project, this.workspace, this.supportedServices, this.certDir)
+        }
       }
     } catch (e) {
       spinner.stop()
@@ -149,7 +168,7 @@ class ConsoleGenerator extends Generator {
    * Prompt to select for an Org.
    *
    * @private
-   * @returns {object} an Org record
+   * @returns {object} { selectedOrg, orgs }
    */
   async _getOrg () {
     if (this.orgId) {
@@ -163,11 +182,12 @@ class ConsoleGenerator extends Generator {
 
     spinner.stop()
 
-    const orgsList = orgs
+    const orgChoices = orgs
       .filter(item => item.type === 'entp')
-      .map(item => item.name)
-    const orgResult = await this.customPrompt.promptSelect('Org', orgsList)
-    return orgs.find(item => item.name === orgResult)
+      .map(item => ({ name: item.name, value: item }))
+    const selectedOrg = await this.customPrompt.promptSelect('Org', orgChoices)
+
+    return { selectedOrg, orgs }
   }
 
   /**
@@ -175,7 +195,7 @@ class ConsoleGenerator extends Generator {
    *
    * @private
    * @param {string} orgId the organization id
-   * @returns {object} a Project record
+   * @returns {object} { selectedProject, projects }
    */
   async _getProject (orgId) {
     if (this.projectId) {
@@ -188,13 +208,13 @@ class ConsoleGenerator extends Generator {
     const projects = (await this.sdkClient.getProjectsForOrg(orgId)).body
     spinner.stop()
 
-    // show projects by title and reverse order to show latest first, note reverse is in place, let's make sure project is not modified
-    const projectsList = [...projects.map(item => item.title)].reverse()
+    // show projects by title and reverse order to show latest first, note reverse is in
+    // place, let's make sure project is not modified by copying the array
+    const projectsChoices = [...projects.map(item => ({ name: item.title, value: item }))].reverse()
     const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
-    const projectResult = await promptFunc('Project', projectsList)
-    let project = projects.find(item => item.title === projectResult)
+    let selectedProject = await promptFunc('Project', projectsChoices)
 
-    if (!project) { // create new
+    if (!selectedProject) { // create new
       console.log('Enter Project details:')
       const name = await this.customPrompt.promptInput('Name', {
         validate: validateProjectName
@@ -225,14 +245,14 @@ class ConsoleGenerator extends Generator {
 
       // get complete record
       spinner.text = 'Getting new Project...'
-      project = (await this.sdkClient.getProject(orgId, projectId)).body
+      selectedProject = (await this.sdkClient.getProject(orgId, projectId)).body
 
-      project.isNew = true
+      selectedProject.isNew = true
 
       spinner.stop()
-      project.isNew = true
+      selectedProject.isNew = true
     }
-    return project
+    return { selectedProject, projects }
   }
 
   /**
@@ -241,7 +261,7 @@ class ConsoleGenerator extends Generator {
    * @private
    * @param {string} orgId the organization id
    * @param {string} projectId the project id
-   * @returns {object} a Workspace record
+   * @returns {object} { selectedWorkspace, workspaces }
    */
   async _getWorkspace (orgId, projectId) {
     if (this.workspaceId) {
@@ -254,12 +274,11 @@ class ConsoleGenerator extends Generator {
     const workspaces = (await this.sdkClient.getWorkspacesForProject(orgId, projectId)).body
     spinner.stop()
 
-    const workspacesList = workspaces.map(item => item.name)
+    const workspacesChoices = workspaces.map(item => ({ name: item.name, value: item }))
     const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
-    const workspaceResult = await promptFunc('Workspace', workspacesList)
-    let workspace = workspaces.find(item => item.name === workspaceResult)
+    let selectedWorkspace = await promptFunc('Workspace', workspacesChoices)
 
-    if (!workspace) { // create new
+    if (!selectedWorkspace) { // create new
       console.log('Enter Workspace details:')
       const name = await this.customPrompt.promptInput('Name', {
         validate: validateWorkspaceName
@@ -280,13 +299,13 @@ class ConsoleGenerator extends Generator {
 
       // get complete record
       spinner.text = 'Getting new Workspace...'
-      workspace = (await this.sdkClient.getWorkspace(orgId, projectId, createdWorkspace.workspaceId)).body
+      selectedWorkspace = (await this.sdkClient.getWorkspace(orgId, projectId, createdWorkspace.workspaceId)).body
 
       spinner.stop()
 
-      workspace.isNew = true
+      selectedWorkspace.isNew = true
     }
-    return workspace
+    return { selectedWorkspace, workspaces }
   }
 
   /**
@@ -298,6 +317,80 @@ class ConsoleGenerator extends Generator {
     const res = await this.sdkClient.getServicesForOrg(orgId)
     spinner.stop()
     return res.body.filter(s => s.enabled)
+  }
+
+  /**
+   * @private
+   * @memberof ConsoleGenerator
+   */
+  async _cloneServices (orgId, project, toWorkspace, workspaces, certDir) {
+    // prompt to get the source workspace
+    const workspaceChoices = workspaces.map(w => ({ name: w.name, value: w }))
+    const fromWorkspace = await this.customPrompt.promptSelect(
+      'Workspace you want to clone the Service subscriptions from',
+      workspaceChoices
+    )
+
+    // get first entp credential attached to workspace
+    spinner.start(`Getting Services attached to the Workspace ${fromWorkspace.name}`)
+    const credentialResponse = await this.sdkClient.getCredentials(orgId, project.id, fromWorkspace.id)
+    const entpCredential = credentialResponse.body.find(c => c.flow_type === 'entp' && c.integration_type === 'service')
+
+    // todo remove those
+    console.log(JSON.stringify(credentialResponse))
+    console.log(entpCredential)
+
+    const noServicesFoundMessage = `Could not find any Services attached to the Workspace ${fromWorkspace.name}`
+    if (!entpCredential) {
+      spinner.stop()
+      console.log(noServicesFoundMessage)
+      return false
+    }
+
+    // get services from the entp workspace credential
+    const integrationResponse = await this.sdkClient.getIntegration(orgId, entpCredential.id_integration)
+    const serviceInfo = integrationResponse.body.serviceProperties.map(s => ({
+      sdkCode: s.sdkCode,
+      roles: s.roles,
+      licenseConfigs: s.licenseConfigs
+    }))
+
+    const serviceNames = integrationResponse.body.serviceProperties.map(s => s.name)
+    if (serviceNames.length <= 0) {
+      spinner.stop()
+      console.log(noServicesFoundMessage)
+      return false
+    }
+
+    // confirmation step
+    spinner.stop()
+    console.log(`Workspace ${fromWorkspace.name} is subscribed to the following services:\n${JSON.stringify(serviceNames, null, 4)}`)
+    const confirmSubscription = await this.customPrompt.promptConfirm(
+      `  > do you confirm adding these services to the Workspace ${toWorkspace.name} ?`
+    )
+    if (!confirmSubscription) {
+      return false
+    }
+    // todo loop back to prompt for confirm clone from workspace !!
+
+    // create credentials in the new Workspace subscribe services to the new Workspace
+    const credential = await this._createEnterpriseCredentials(orgId, project, toWorkspace, certDir)
+
+    spinner.start(`Subscribing to services from Workspace ${fromWorkspace.name} in Workspace ${toWorkspace.name}`)
+    const a = await this.sdkClient.subscribeCredentialToServices(
+      orgId,
+      project.id,
+      toWorkspace.id,
+      'entp',
+      credential.id,
+      serviceInfo
+    )
+
+    // todo remove those
+    console.log(JSON.stringify(serviceInfo, null, 2))
+    console.log(JSON.stringify(a, null, 2))
+    spinner.stop()
+    return true
   }
 
   /**
@@ -336,33 +429,7 @@ class ConsoleGenerator extends Generator {
     // todo3 ask for adding services from existing workspace ?
 
     if (selectedServices.length > 0) {
-      spinner.start(`Generating Credential key pair for Workspace ${workspace.name}...`)
-
-      // todo2 the certificate is only valid 365 days, this is shown in the console UI, but should we write a message here ?
-
-      const projectCertDir = path.join(certDir, `${this.org.id}-${this.project.name}`)
-      const publicKeyFileName = `${workspace.name}.pem`
-      const privateKeyFileName = `${workspace.name}.key}`
-      const publicKeyFilePath = path.join(projectCertDir, publicKeyFileName)
-      const privateKeyFilePath = path.join(projectCertDir, privateKeyFileName)
-      const { cert, privateKey } = certPlugin.generate(orgId + project.name + workspace.name, Default.CERT_VALID_DAYS)
-      fs.ensureDirSync(projectCertDir)
-      fs.writeFileSync(publicKeyFilePath, cert)
-      fs.writeFileSync(privateKeyFilePath, privateKey)
-      spinner.stopAndPersist({
-        text: `Key pair '${publicKeyFileName}, ${privateKeyFileName}' valid for '${Default.CERT_VALID_DAYS}' days, has been created into the folder: ${projectCertDir}`
-      })
-
-      spinner.start(`Creating Enterprise Credentials for Workspace ${workspace.name}...`)
-      const createCredentialResponse = await this.sdkClient.createEnterpriseCredential(
-        orgId,
-        project.id,
-        workspace.id,
-        fs.createReadStream(publicKeyFilePath),
-        workspace.name,
-        'Auto generated enterprise credentials from aio CLI'
-      )
-      const credentialId = createCredentialResponse.body.id
+      const credential = await this._createEnterpriseCredentials(orgId, project, workspace, certDir)
 
       spinner.start(`Attaching Services to the Enterprise Credentials of Workspace ${workspace.name}...`)
       const serviceInfo = selectedServices.map(s => ({
@@ -375,11 +442,41 @@ class ConsoleGenerator extends Generator {
         project.id,
         workspace.id,
         'entp',
-        credentialId,
+        credential.id,
         serviceInfo
       )
       spinner.stop()
     }
+  }
+
+  async _createEnterpriseCredentials (orgId, project, workspace, certDir) {
+    spinner.start(`Generating Credential key pair for Workspace ${workspace.name}...`)
+    const projectCertDir = path.join(certDir, `${this.org.id}-${this.project.name}`)
+    const publicKeyFileName = `${workspace.name}.pem`
+    const privateKeyFileName = `${workspace.name}.key`
+    const publicKeyFilePath = path.join(projectCertDir, publicKeyFileName)
+    const privateKeyFilePath = path.join(projectCertDir, privateKeyFileName)
+    const { cert, privateKey } = certPlugin.generate(orgId + project.name + workspace.name, Default.CERT_VALID_DAYS)
+    fs.ensureDirSync(projectCertDir)
+    fs.writeFileSync(publicKeyFilePath, cert)
+    fs.writeFileSync(privateKeyFilePath, privateKey)
+    spinner.stop()
+    console.log(`Key pair '${publicKeyFileName}, ${privateKeyFileName}' valid for '${Default.CERT_VALID_DAYS}' days, has been created into the folder: ${projectCertDir}`)
+
+    spinner.start(`Creating Enterprise Credentials for Workspace ${workspace.name}...`)
+    const createCredentialResponse = await this.sdkClient.createEnterpriseCredential(
+      orgId,
+      project.id,
+      workspace.id,
+      fs.createReadStream(publicKeyFilePath),
+      // As of now we only support 1 integration, so uniqueness based on id is fine
+      // must be between 6 and 25 chars long, workspace id length is 19
+      `aio-${workspace.id}`,
+      'Auto generated enterprise credentials from aio CLI'
+    )
+
+    spinner.stop()
+    return createCredentialResponse.body
   }
 }
 
