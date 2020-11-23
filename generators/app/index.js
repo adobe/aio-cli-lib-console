@@ -15,6 +15,10 @@ const spinner = require('ora')()
 const certPlugin = require('@adobe/aio-cli-plugin-certificate')
 const fs = require('fs-extra')
 const path = require('path')
+const fetch = require('node-fetch')
+
+const loggerNamespace = '@adobe/generator-aio-console'
+const logger = require('@adobe/aio-lib-core-logging')(loggerNamespace, { provider: 'debug', level: process.env.LOG_LEVEL || 'debug' })
 
 const prompt = require('../../lib/prompt')
 const {
@@ -131,7 +135,7 @@ class ConsoleGenerator extends Generator {
             `Do you wish to clone service subscriptions from another Workspace into ${selectedWorkspace.name}?`
           )
           if (confirmServiceClone) {
-            hasServices = await this._cloneServices(selectedOrg.id, selectedProject, selectedWorkspace, workspaces, this.certDir)
+            hasServices = await this._cloneServices(selectedOrg.id, selectedProject, selectedWorkspace, workspaces, this.supportedServices, this.certDir)
           }
         }
         if (!hasServices) {
@@ -187,6 +191,7 @@ class ConsoleGenerator extends Generator {
       .map(item => ({ name: item.name, value: item }))
     const selectedOrg = await this.customPrompt.promptSelect('Org', orgChoices)
 
+    logger.debug('Selected Org', JSON.stringify(selectedOrg, null, 2))
     return { selectedOrg, orgs }
   }
 
@@ -250,8 +255,8 @@ class ConsoleGenerator extends Generator {
       selectedProject.isNew = true
 
       spinner.stop()
-      selectedProject.isNew = true
     }
+    logger.debug('Selected Project', JSON.stringify(selectedProject, null, 2))
     return { selectedProject, projects }
   }
 
@@ -305,6 +310,8 @@ class ConsoleGenerator extends Generator {
 
       selectedWorkspace.isNew = true
     }
+
+    logger.debug('Selected Workspace', JSON.stringify(selectedWorkspace, null, 2))
     return { selectedWorkspace, workspaces }
   }
 
@@ -323,7 +330,7 @@ class ConsoleGenerator extends Generator {
    * @private
    * @memberof ConsoleGenerator
    */
-  async _cloneServices (orgId, project, toWorkspace, workspaces, certDir) {
+  async _cloneServices (orgId, project, toWorkspace, workspaces, supportedServices, certDir) {
     // prompt to get the source workspace
     const workspaceChoices = workspaces.map(w => ({ name: w.name, value: w }))
     const fromWorkspace = await this.customPrompt.promptSelect(
@@ -336,10 +343,6 @@ class ConsoleGenerator extends Generator {
     const credentialResponse = await this.sdkClient.getCredentials(orgId, project.id, fromWorkspace.id)
     const entpCredential = credentialResponse.body.find(c => c.flow_type === 'entp' && c.integration_type === 'service')
 
-    // todo remove those
-    console.log(JSON.stringify(credentialResponse))
-    console.log(entpCredential)
-
     const noServicesFoundMessage = `Could not find any Services attached to the Workspace ${fromWorkspace.name}`
     if (!entpCredential) {
       spinner.stop()
@@ -347,21 +350,26 @@ class ConsoleGenerator extends Generator {
       return false
     }
 
+    // NOTE this is a workaround for a bug in the Console API:
+    //   By calling getSDKProperties via the graphQL API we make sure a backend cache for
+    //   LicenseConfigs is invalidated, otherwise getIntegrationDetails might return empty LicenseConfigs arrays.
+    const anyValidSDKCodeIsFine = 'AdobeAnalyticsSDK'
+    await getSDKPropertiesViaGraphQLApi(
+      this.sdkClient.env, this.sdkClient.orgId, this.sdkClient.accessToken,
+      orgId, entpCredential.id_integration, anyValidSDKCodeIsFine
+    )
+    // end workaround
+
     // get services from the entp workspace credential
     const integrationResponse = await this.sdkClient.getIntegration(orgId, entpCredential.id_integration)
-    const serviceInfo = integrationResponse.body.serviceProperties.map(s => ({
-      sdkCode: s.sdkCode,
-      roles: s.roles,
-      licenseConfigs: s.licenseConfigs
-    }))
-
-    const serviceNames = integrationResponse.body.serviceProperties.map(s => s.name)
+    const serviceProperties = integrationResponse.body.serviceProperties
+    // if no services attached, there is nothing to subscribe to, so return
+    const serviceNames = serviceProperties.map(s => s.name)
     if (serviceNames.length <= 0) {
       spinner.stop()
       console.log(noServicesFoundMessage)
       return false
     }
-
     // confirmation step
     spinner.stop()
     console.log(`Workspace ${fromWorkspace.name} is subscribed to the following services:\n${JSON.stringify(serviceNames, null, 4)}`)
@@ -377,7 +385,31 @@ class ConsoleGenerator extends Generator {
     const credential = await this._createEnterpriseCredentials(orgId, project, toWorkspace, certDir)
 
     spinner.start(`Subscribing to services from Workspace ${fromWorkspace.name} in Workspace ${toWorkspace.name}`)
-    const a = await this.sdkClient.subscribeCredentialToServices(
+    // prepare the service info payload, with License Configs "Add" payload for each services
+    const serviceInfo = []
+    serviceProperties.forEach(sp => {
+      const orgServiceInfo = supportedServices.find(osi => osi.code === sp.sdkCode)
+      // NOTE 2: this is a workaround for another bug in the returned LicenseConfigs list,
+      //  After the caching issue, where the returned list may be empty, now every
+      //  list contains all the LicenseConfigs for all services, so this list must be
+      //  filtered to map to service specific licenseConfigs
+      let cleanLicenseConfigsList = null
+      if (orgServiceInfo.properties && orgServiceInfo.properties.licenseConfigs) {
+        cleanLicenseConfigsList = sp.licenseConfigs.filter(l => orgServiceInfo.properties.licenseConfigs.find(ol => ol.id === l.id))
+      }
+      // end workaround
+      const roles = (orgServiceInfo.properties && orgServiceInfo.properties.roles) || null
+      const licenseConfigs = cleanLicenseConfigsList && cleanLicenseConfigsList.map(clc => ({
+        op: 'add', id: clc.id, productId: clc.productId
+      }))
+      serviceInfo.push({
+        sdkCode: sp.sdkCode,
+        roles,
+        licenseConfigs
+      })
+    })
+    // finally subscribe to the services
+    const subscriptionResponse = await this.sdkClient.subscribeCredentialToServices(
       orgId,
       project.id,
       toWorkspace.id,
@@ -385,11 +417,9 @@ class ConsoleGenerator extends Generator {
       credential.id,
       serviceInfo
     )
-
-    // todo remove those
-    console.log(JSON.stringify(serviceInfo, null, 2))
-    console.log(JSON.stringify(a, null, 2))
     spinner.stop()
+
+    logger.debug('Subscription Response', JSON.stringify(subscriptionResponse.body, null, 2))
     return true
   }
 
@@ -417,6 +447,7 @@ class ConsoleGenerator extends Generator {
           // value returned, ready for subscribe API call
           value: { op: 'add', id: s.id, productId: s.productId }
         }))
+        // todo FORCE AT LEAST ONE !!!
         const selection = await this.customPrompt.promptMultiSelect(
                 `Select Product Profiles for the service '${s.name}'`,
                 licenseConfigsChoices
@@ -437,7 +468,8 @@ class ConsoleGenerator extends Generator {
         licenseConfigs: selectedLicenseConfigs[s.code],
         roles: (s.properties && s.properties.roles) || null
       }))
-      await this.sdkClient.subscribeCredentialToServices(
+      // todo THROW error if error object ?
+      const subscriptionResponse = await this.sdkClient.subscribeCredentialToServices(
         orgId,
         project.id,
         workspace.id,
@@ -445,7 +477,9 @@ class ConsoleGenerator extends Generator {
         credential.id,
         serviceInfo
       )
+
       spinner.stop()
+      logger.debug('Subscription Response', JSON.stringify(subscriptionResponse.body, null, 2))
     }
   }
 
@@ -476,8 +510,37 @@ class ConsoleGenerator extends Generator {
     )
 
     spinner.stop()
+
+    logger.debug('Create Credential Response', JSON.stringify(createCredentialResponse.body, null, 2))
     return createCredentialResponse.body
   }
+}
+
+/**
+ * @private
+ */
+async function getSDKPropertiesViaGraphQLApi (env, apiKey, token, orgId, intId, sdkCode) {
+  const CONSOLE_GRAPHQL_ENDPOINT = {
+    stage: 'https://console-stage.adobe.io/graphql',
+    prod: 'https://console.adobe.io/graphql'
+  }
+  const res = await fetch(
+    CONSOLE_GRAPHQL_ENDPOINT[env],
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        operationName: 'GetSdkProperties',
+        query: 'query GetSdkProperties($orgId: String!, $intId: String!, $sdkCode: String!) {  getSdkProperties(orgId: $orgId, intId: $intId, sdkCode: $sdkCode) {    licenseConfigs {      id      name      productId      description      selected      __typename    }    __typename  }}',
+        variables: { intId, orgId, sdkCode }
+      })
+    })
+  const content = await res.json()
+  return content
 }
 
 module.exports = ConsoleGenerator
