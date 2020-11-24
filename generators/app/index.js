@@ -14,12 +14,12 @@ const consoleSdk = require('@adobe/aio-lib-console')
 const spinner = require('ora')()
 const certPlugin = require('@adobe/aio-cli-plugin-certificate')
 const fs = require('fs-extra')
-const path = require('path')
 const fetch = require('node-fetch')
 
 const loggerNamespace = '@adobe/generator-aio-console'
 const logger = require('@adobe/aio-lib-core-logging')(loggerNamespace, { provider: 'debug', level: process.env.LOG_LEVEL || 'debug' })
 
+const helpers = require('../../lib/pure-helpers')
 const prompt = require('../../lib/prompt')
 const {
   validateProjectName,
@@ -28,6 +28,7 @@ const {
   validateWorkspaceName,
   validateWorkspaceTitle
 } = require('../../lib/validate')
+const validate = require('../../lib/validate')
 
 /*
   'initializing',
@@ -40,6 +41,7 @@ const {
   'end'
 */
 
+// TODO move to constants
 const ApiKey = {
   prod: 'aio-cli-console-auth',
   stage: 'aio-cli-console-auth-stage'
@@ -175,6 +177,7 @@ class ConsoleGenerator extends Generator {
    * @returns {object} { selectedOrg, orgs }
    */
   async _getOrg () {
+    // todo remove from here
     if (this.orgId) {
       return { id: this.orgId }
     }
@@ -186,9 +189,8 @@ class ConsoleGenerator extends Generator {
 
     spinner.stop()
 
-    const orgChoices = orgs
-      .filter(item => item.type === 'entp')
-      .map(item => ({ name: item.name, value: item }))
+    const orgChoices = helpers.orgsToPromptChoices(orgs)
+
     const selectedOrg = await this.customPrompt.promptSelect('Org', orgChoices)
 
     logger.debug('Selected Org', JSON.stringify(selectedOrg, null, 2))
@@ -203,6 +205,7 @@ class ConsoleGenerator extends Generator {
    * @returns {object} { selectedProject, projects }
    */
   async _getProject (orgId) {
+    // todo remove from here
     if (this.projectId) {
       return { id: this.projectId }
     }
@@ -213,9 +216,7 @@ class ConsoleGenerator extends Generator {
     const projects = (await this.sdkClient.getProjectsForOrg(orgId)).body
     spinner.stop()
 
-    // show projects by title and reverse order to show latest first, note reverse is in
-    // place, let's make sure project is not modified by copying the array
-    const projectsChoices = [...projects.map(item => ({ name: item.title, value: item }))].reverse()
+    const projectsChoices = helpers.projectsToPromptChoices(projects)
     const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
     let selectedProject = await promptFunc('Project', projectsChoices)
 
@@ -279,7 +280,7 @@ class ConsoleGenerator extends Generator {
     const workspaces = (await this.sdkClient.getWorkspacesForProject(orgId, projectId)).body
     spinner.stop()
 
-    const workspacesChoices = workspaces.map(item => ({ name: item.name, value: item }))
+    const workspacesChoices = helpers.workspacesToPromptChoices(workspaces)
     const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
     let selectedWorkspace = await promptFunc('Workspace', workspacesChoices)
 
@@ -323,7 +324,7 @@ class ConsoleGenerator extends Generator {
     spinner.start('Retrieving services supported by the Organization...')
     const res = await this.sdkClient.getServicesForOrg(orgId)
     spinner.stop()
-    return res.body.filter(s => s.enabled)
+    return helpers.filterEnabledServices(res.body)
   }
 
   /**
@@ -332,7 +333,7 @@ class ConsoleGenerator extends Generator {
    */
   async _cloneServices (orgId, project, toWorkspace, workspaces, supportedServices, certDir) {
     // prompt to get the source workspace
-    const workspaceChoices = workspaces.map(w => ({ name: w.name, value: w }))
+    const workspaceChoices = helpers.workspacesToPromptChoices(workspaces)
     const fromWorkspace = await this.customPrompt.promptSelect(
       'Workspace you want to clone the Service subscriptions from',
       workspaceChoices
@@ -341,7 +342,7 @@ class ConsoleGenerator extends Generator {
     // get first entp credential attached to workspace
     spinner.start(`Getting Services attached to the Workspace ${fromWorkspace.name}`)
     const credentialResponse = await this.sdkClient.getCredentials(orgId, project.id, fromWorkspace.id)
-    const entpCredential = credentialResponse.body.find(c => c.flow_type === 'entp' && c.integration_type === 'service')
+    const entpCredential = helpers.findFirstEntpCredential(credentialResponse)
 
     const noServicesFoundMessage = `Could not find any Services attached to the Workspace ${fromWorkspace.name}`
     if (!entpCredential) {
@@ -363,13 +364,15 @@ class ConsoleGenerator extends Generator {
     // get services from the entp workspace credential
     const integrationResponse = await this.sdkClient.getIntegration(orgId, entpCredential.id_integration)
     const serviceProperties = integrationResponse.body.serviceProperties
+    const serviceNames = helpers.servicePropertiesToNames(serviceProperties)
+
     // if no services attached, there is nothing to subscribe to, so return
-    const serviceNames = serviceProperties.map(s => s.name)
     if (serviceNames.length <= 0) {
       spinner.stop()
       console.log(noServicesFoundMessage)
       return false
     }
+
     // confirmation step
     spinner.stop()
     console.log(`Workspace ${fromWorkspace.name} is subscribed to the following services:\n${JSON.stringify(serviceNames, null, 4)}`)
@@ -385,29 +388,16 @@ class ConsoleGenerator extends Generator {
     const credential = await this._createEnterpriseCredentials(orgId, project, toWorkspace, certDir)
 
     spinner.start(`Subscribing to services from Workspace ${fromWorkspace.name} in Workspace ${toWorkspace.name}`)
+
+    // NOTE 2: this is a workaround for another bug in the returned LicenseConfigs list,
+    //  After the caching issue, where the returned list may be empty, now every
+    //  list contains all the LicenseConfigs for all services, so this list must be
+    //  filtered to map to service specific licenseConfigs
+    const fixedServiceProperties = helpers.fixServiceProperties(serviceProperties, supportedServices)
+
     // prepare the service info payload, with License Configs "Add" payload for each services
-    const serviceInfo = []
-    serviceProperties.forEach(sp => {
-      const orgServiceInfo = supportedServices.find(osi => osi.code === sp.sdkCode)
-      // NOTE 2: this is a workaround for another bug in the returned LicenseConfigs list,
-      //  After the caching issue, where the returned list may be empty, now every
-      //  list contains all the LicenseConfigs for all services, so this list must be
-      //  filtered to map to service specific licenseConfigs
-      let cleanLicenseConfigsList = null
-      if (orgServiceInfo.properties && orgServiceInfo.properties.licenseConfigs) {
-        cleanLicenseConfigsList = sp.licenseConfigs.filter(l => orgServiceInfo.properties.licenseConfigs.find(ol => ol.id === l.id))
-      }
-      // end workaround
-      const roles = (orgServiceInfo.properties && orgServiceInfo.properties.roles) || null
-      const licenseConfigs = cleanLicenseConfigsList && cleanLicenseConfigsList.map(clc => ({
-        op: 'add', id: clc.id, productId: clc.productId
-      }))
-      serviceInfo.push({
-        sdkCode: sp.sdkCode,
-        roles,
-        licenseConfigs
-      })
-    })
+    const serviceInfo = helpers.servicePropertiesToServiceSubscriptionPayload(fixedServiceProperties)
+
     // finally subscribe to the services
     const subscriptionResponse = await this.sdkClient.subscribeCredentialToServices(
       orgId,
@@ -428,31 +418,28 @@ class ConsoleGenerator extends Generator {
    * @memberof ConsoleGenerator
    */
   async _addServices (orgId, project, workspace, supportedServices, certDir) {
-    const serviceChoices = supportedServices
-      // we only support entp integrations for now
-      .filter(s => s.type === 'entp')
-      .map(s => ({ name: s.name, value: s }))
-
-    const selectedServices = await this.customPrompt.promptMultiSelect(`Add Services to new Workspace '${workspace.name}'`, serviceChoices)
+    const serviceChoices = helpers.servicesToPromptChoices(supportedServices)
+    const selectedServices = await this.customPrompt.promptMultiSelect(
+      `Add Services to new Workspace '${workspace.name}'`,
+      serviceChoices
+    )
 
     // for each selected service, prompt to select from the licenseConfigs list
+    // todo LESS LOGIC!
     const selectedLicenseConfigs = {}
     for (let i = 0; i < selectedServices.length; ++i) {
       const s = selectedServices[i]
-      selectedLicenseConfigs[s.code] = null // default value
+      const key = helpers.getUniqueServiceId(s)
+      selectedLicenseConfigs[key] = null // default value
       if (s.properties && s.properties.licenseConfigs) {
-        const licenseConfigsChoices = s.properties.licenseConfigs.map(s => ({
-          // display name
-          name: s.name,
-          // value returned, ready for subscribe API call
-          value: { op: 'add', id: s.id, productId: s.productId }
-        }))
-        // todo FORCE AT LEAST ONE !!!
+        const licenseConfigsChoices = helpers.licenseConfigsToPromptChoices(s.properties.licenseConfigs)
+
         const selection = await this.customPrompt.promptMultiSelect(
                 `Select Product Profiles for the service '${s.name}'`,
-                licenseConfigsChoices
+                licenseConfigsChoices,
+                { validate: validate.atLeastOne }
         )
-        selectedLicenseConfigs[s.code] = selection
+        selectedLicenseConfigs[key] = selection
       }
     }
     // todo think about confirmation ?
@@ -465,7 +452,9 @@ class ConsoleGenerator extends Generator {
       spinner.start(`Attaching Services to the Enterprise Credentials of Workspace ${workspace.name}...`)
       const serviceInfo = selectedServices.map(s => ({
         sdkCode: s.code,
-        licenseConfigs: selectedLicenseConfigs[s.code],
+        licenseConfigs: helpers.licenseConfigsToSubscriptionPartialPayload(
+          selectedLicenseConfigs[helpers.getUniqueServiceId(s)]
+        ),
         roles: (s.properties && s.properties.roles) || null
       }))
       // todo THROW error if error object ?
@@ -484,12 +473,15 @@ class ConsoleGenerator extends Generator {
   }
 
   async _createEnterpriseCredentials (orgId, project, workspace, certDir) {
+    const {
+      projectCertDir,
+      publicKeyFileName,
+      publicKeyFilePath,
+      privateKeyFileName,
+      privateKeyFilePath
+    } = helpers.getCertFilesLocation(orgId, project, workspace, certDir)
+
     spinner.start(`Generating Credential key pair for Workspace ${workspace.name}...`)
-    const projectCertDir = path.join(certDir, `${this.org.id}-${this.project.name}`)
-    const publicKeyFileName = `${workspace.name}.pem`
-    const privateKeyFileName = `${workspace.name}.key`
-    const publicKeyFilePath = path.join(projectCertDir, publicKeyFileName)
-    const privateKeyFilePath = path.join(projectCertDir, privateKeyFileName)
     const { cert, privateKey } = certPlugin.generate(orgId + project.name + workspace.name, Default.CERT_VALID_DAYS)
     fs.ensureDirSync(projectCertDir)
     fs.writeFileSync(publicKeyFilePath, cert)
@@ -519,6 +511,7 @@ class ConsoleGenerator extends Generator {
 /**
  * @private
  */
+// TODO move to aio-lib-console
 async function getSDKPropertiesViaGraphQLApi (env, apiKey, token, orgId, intId, sdkCode) {
   const CONSOLE_GRAPHQL_ENDPOINT = {
     stage: 'https://console-stage.adobe.io/graphql',
