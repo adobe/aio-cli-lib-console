@@ -106,17 +106,73 @@ class ConsoleGenerator extends Generator {
 
     // hierarchy of ids:
     // project id is invalid if org id is not set, workspace id is not valid if project id is not set, etc
-    this.orgId = this.options[Option.ORG_ID]
-    this.projectId = this.orgId ? this.options[Option.PROJECT_ID] : null
-    this.workspaceId = this.projectId ? this.options[Option.WORKSPACE_ID] : null
+    this.preSelectedOrgId = this.options[Option.ORG_ID]
+    this.preSelectedProjectId = this.preSelectedOrgId ? this.options[Option.PROJECT_ID] : null
+    this.preSelectedWorkspaceId = this.preSelectedProjectId ? this.options[Option.WORKSPACE_ID] : null
   }
 
   async prompting () {
     this.log('Retrieving information from Adobe I/O Console..')
 
     try {
+      // step 1 resolve pre-selections
+      let selectedOrg, selectedProject, selectedWorkspace
+      if (this.preSelectedOrgId) {
+        selectedOrg = { id: this.preSelectedOrgId }
+        if (this.preSelectedProjectId) {
+          spinner.start()
+          spinner.text = 'Getting Project from provided id...'
+          selectedProject = (await this.sdkClient.getProject(selectedOrg.id, this.preSelectedProjectId)).body
+          if (this.preSelectedWorkspaceId) {
+            spinner.start()
+            spinner.text = 'Getting Workspace from provided id...'
+            selectedWorkspace = (await this.sdkClient.getWorkspace(selectedOrg.id, selectedProject.id, this.preSelectedWorkspaceId)).body
+          }
+          spinner.stop()
+        }
+      }
+
+      let workspaces
+      // step 2, select with prompts
+      if (!selectedOrg) {
+        // todo make non-pure function
+        spinner.start()
+        spinner.text = 'Getting Organizations...'
+        const orgs = (await this.sdkClient.getOrganizations()).body
+        spinner.stop()
+
+        const orgChoices = helpers.orgsToPromptChoices(orgs)
+        selectedOrg = await this.customPrompt.promptSelect('Org', orgChoices)
+      }
+      logger.debug('Selected Org', JSON.stringify(selectedOrg, null, 2))
+
+      if (!selectedProject) {
+        spinner.start()
+        spinner.text = 'Getting Projects...'
+        const projects = (await this.sdkClient.getProjectsForOrg(selectedOrg.id))
+        spinner.stop()
+
+        const projectsChoices = helpers.projectsToPromptChoices(projects)
+        const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
+        selectedProject = await promptFunc('Project', projectsChoices)
+        if (!selectedProject) {
+          // TODO HERE PROJECT CREATION
+          // BUT I WANT THIS TO BE DELAYED ?
+        }
+      }
+      logger.debug('Selected Project', JSON.stringify(selectedProject, null, 2))
+
+      let selectedOrgId = this.orgId
+      let selectedProject = { id: this.projectId }, selectedWorkspace
+
+      if (this.orgId) {
+        selectedOrgId = this.orgId
+      }
+      const selectedOrg =
+
       const { selectedOrg } = await this._getOrg()
       const { selectedProject } = await this._getProject(selectedOrg.id)
+      // TODO what if workspace id is specified ! then no need for next steps..
       const { selectedWorkspace, workspaces } = await this._getWorkspace(selectedOrg.id, selectedProject.id)
 
       // persist selections
@@ -127,7 +183,9 @@ class ConsoleGenerator extends Generator {
       // get and persist support services in org
       this.supportedServices = await this._getEnabledServicesForOrg(selectedOrg.id)
 
-      // todo allow to create multiple workspaces, add same services to each ? Hmm actually that could be handled by aio app use switch..
+      // todo should we allow to pass flags to not prompt in creation steps ?
+      // e.g. orgId === x, createProject = true, addServices = 'codes,..'
+
       // add services to newly created Workspace
       if (selectedWorkspace.isNew) {
         let hasServices = false
@@ -316,16 +374,6 @@ class ConsoleGenerator extends Generator {
     return { selectedWorkspace, workspaces }
   }
 
-  /**
-   * @private
-   * @memberof ConsoleGenerator
-   */
-  async _getEnabledServicesForOrg (orgId) {
-    spinner.start('Retrieving services supported by the Organization...')
-    const res = await this.sdkClient.getServicesForOrg(orgId)
-    spinner.stop()
-    return helpers.filterEnabledServices(res.body)
-  }
 
   /**
    * @private
@@ -417,96 +465,7 @@ class ConsoleGenerator extends Generator {
    * @private
    * @memberof ConsoleGenerator
    */
-  async _addServices (orgId, project, workspace, supportedServices, certDir) {
-    const serviceChoices = helpers.servicesToPromptChoices(supportedServices)
-    const selectedServices = await this.customPrompt.promptMultiSelect(
-      `Add Services to new Workspace '${workspace.name}'`,
-      serviceChoices
-    )
 
-    // for each selected service, prompt to select from the licenseConfigs list
-    // todo LESS LOGIC!
-    const selectedLicenseConfigs = {}
-    for (let i = 0; i < selectedServices.length; ++i) {
-      const s = selectedServices[i]
-      const key = helpers.getUniqueServiceId(s)
-      selectedLicenseConfigs[key] = null // default value
-      if (s.properties && s.properties.licenseConfigs) {
-        const licenseConfigsChoices = helpers.licenseConfigsToPromptChoices(s.properties.licenseConfigs)
-
-        const selection = await this.customPrompt.promptMultiSelect(
-                `Select Product Profiles for the service '${s.name}'`,
-                licenseConfigsChoices,
-                { validate: validate.atLeastOne }
-        )
-        selectedLicenseConfigs[key] = selection
-      }
-    }
-    // todo think about confirmation ?
-    // todo2 add services in all workspaces ?
-    // todo3 ask for adding services from existing workspace ?
-
-    if (selectedServices.length > 0) {
-      const credential = await this._createEnterpriseCredentials(orgId, project, workspace, certDir)
-
-      spinner.start(`Attaching Services to the Enterprise Credentials of Workspace ${workspace.name}...`)
-      const serviceInfo = selectedServices.map(s => ({
-        sdkCode: s.code,
-        licenseConfigs: helpers.licenseConfigsToSubscriptionPartialPayload(
-          selectedLicenseConfigs[helpers.getUniqueServiceId(s)]
-        ),
-        roles: (s.properties && s.properties.roles) || null
-      }))
-      // todo THROW error if error object ?
-      const subscriptionResponse = await this.sdkClient.subscribeCredentialToServices(
-        orgId,
-        project.id,
-        workspace.id,
-        'entp',
-        credential.id,
-        serviceInfo
-      )
-
-      spinner.stop()
-      logger.debug('Subscription Response', JSON.stringify(subscriptionResponse.body, null, 2))
-    }
-  }
-
-  async _createEnterpriseCredentials (orgId, project, workspace, certDir) {
-    const {
-      projectCertDir,
-      publicKeyFileName,
-      publicKeyFilePath,
-      privateKeyFileName,
-      privateKeyFilePath
-    } = helpers.getCertFilesLocation(orgId, project, workspace, certDir)
-
-    spinner.start(`Generating Credential key pair for Workspace ${workspace.name}...`)
-    const { cert, privateKey } = certPlugin.generate(orgId + project.name + workspace.name, Default.CERT_VALID_DAYS)
-    fs.ensureDirSync(projectCertDir)
-    fs.writeFileSync(publicKeyFilePath, cert)
-    fs.writeFileSync(privateKeyFilePath, privateKey)
-    spinner.stop()
-    console.log(`Key pair '${publicKeyFileName}, ${privateKeyFileName}' valid for '${Default.CERT_VALID_DAYS}' days, has been created into the folder: ${projectCertDir}`)
-
-    spinner.start(`Creating Enterprise Credentials for Workspace ${workspace.name}...`)
-    const createCredentialResponse = await this.sdkClient.createEnterpriseCredential(
-      orgId,
-      project.id,
-      workspace.id,
-      fs.createReadStream(publicKeyFilePath),
-      // As of now we only support 1 integration, so uniqueness based on id is fine
-      // must be between 6 and 25 chars long, workspace id length is 19
-      `aio-${workspace.id}`,
-      'Auto generated enterprise credentials from aio CLI'
-    )
-
-    spinner.stop()
-
-    logger.debug('Create Credential Response', JSON.stringify(createCredentialResponse.body, null, 2))
-    return createCredentialResponse.body
-  }
-}
 
 /**
  * @private
