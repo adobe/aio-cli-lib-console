@@ -10,25 +10,12 @@ governing permissions and limitations under the License.
 */
 
 const Generator = require('yeoman-generator')
-const consoleSdk = require('@adobe/aio-lib-console')
 const spinner = require('ora')()
-const certPlugin = require('@adobe/aio-cli-plugin-certificate')
-const fs = require('fs-extra')
-const fetch = require('node-fetch')
-
 const loggerNamespace = '@adobe/generator-aio-console'
 const logger = require('@adobe/aio-lib-core-logging')(loggerNamespace, { provider: 'debug', level: process.env.LOG_LEVEL || 'debug' })
 
-const helpers = require('../../lib/pure-helpers')
+const ConsoleCLILib = require('../../lib/cli-console')
 const prompt = require('../../lib/prompt')
-const {
-  validateProjectName,
-  validateProjectTitle,
-  validateProjectDescription,
-  validateWorkspaceName,
-  validateWorkspaceTitle
-} = require('../../lib/validate')
-const validate = require('../../lib/validate')
 
 /*
   'initializing',
@@ -98,8 +85,6 @@ class ConsoleGenerator extends Generator {
     const accessToken = this.options[Option.ACCESS_TOKEN]
     const apiKey = this.options[Option.API_KEY]
 
-    this.sdkClient = await consoleSdk.init(accessToken, apiKey, env)
-    this.customPrompt = prompt(this)
     this.allowCreate = this.options[Option.ALLOW_CREATE]
     this.projectType = this.options[Option.PROJECT_TYPE]
     this.certDir = this.options[Option.CERT_DIR]
@@ -109,100 +94,107 @@ class ConsoleGenerator extends Generator {
     this.preSelectedOrgId = this.options[Option.ORG_ID]
     this.preSelectedProjectId = this.preSelectedOrgId ? this.options[Option.PROJECT_ID] : null
     this.preSelectedWorkspaceId = this.preSelectedProjectId ? this.options[Option.WORKSPACE_ID] : null
+
+    this.consoleCLI = await ConsoleCLILib.init({ env, accessToken, apiKey })
   }
 
   async prompting () {
     this.log('Retrieving information from Adobe I/O Console..')
 
     try {
-      // step 1 resolve pre-selections
-      let selectedOrg, selectedProject, selectedWorkspace
-      if (this.preSelectedOrgId) {
-        selectedOrg = { id: this.preSelectedOrgId }
-        if (this.preSelectedProjectId) {
-          spinner.start()
-          spinner.text = 'Getting Project from provided id...'
-          selectedProject = (await this.sdkClient.getProject(selectedOrg.id, this.preSelectedProjectId)).body
-          if (this.preSelectedWorkspaceId) {
-            spinner.start()
-            spinner.text = 'Getting Workspace from provided id...'
-            selectedWorkspace = (await this.sdkClient.getWorkspace(selectedOrg.id, selectedProject.id, this.preSelectedWorkspaceId)).body
+      // 1. select org
+      const orgs = await this.consoleCLI.getOrganizations()
+      const org = await this.consoleCLI.promptForSelectOrganization(
+        orgs,
+        { orgId: this.preSelectedOrgId }
+      )
+      const orgId = org.id
+
+      // 2. select or create project
+      // todo consoleCli.selectOrCreate ?
+      const projects = await this.consoleCLI.getProjects(orgId)
+      let project = await this.consoleCLI.promptForSelectProject(
+        projects,
+        { projectId: this.preSelectedProjectId },
+        { allowCreate: this.allowCreate }
+      )
+      if (!project) {
+        // user has escaped project selection prompt, let's create a new one
+        const projectDetails = await this.consoleCLI.promptForCreateProjectDetails()
+        project = await this.consoleCLI.createProject(orgId, projectDetails)
+        project.isNew = true
+      }
+      const projectId = project.id
+      // 3. select or create workspace
+      // todo consoleCli.selectOrCreate ?
+      const workspaces = await this.consoleCLI.getWorkspaces(orgId, projectId)
+      let workspace = await this.consoleCLI.promptForSelectWorkspace(
+        workspaces,
+        { workspaceId: this.preSelectedWorkspaceId },
+        { allowCreate: this.allowCreate }
+      )
+      if (!workspace) {
+        // user has escaped workspace selection prompt, let's create a new one
+        const workspaceDetails = await this.consoleCLI.promptForCreateWorkspaceDetails
+        workspace = await this.consoleCLI.createWorkspace(orgId, projectId, workspaceDetails)
+        workspace.isNew = true
+      }
+
+      // retrieve supported services in org
+      const supportedServices = await this.consoleCLI.getEnabledServicesForOrg(orgId)
+
+      // 4. add services if needed
+      if (workspace.isNew) {
+        // todo hide behind cli-console, do not require prompt ?
+        let choice = null
+        while (choice !== 'no') {
+          let choices = [
+            { name: 'Yes, select services to add', value: 'add' },
+            { name: 'No, do not add any new services', value: 'no' }
+          ]
+          if (!project.isNew) {
+            choices = [
+              { name: 'Yes, select services to add', value: 'add' },
+              { name: 'Yes, clone services from another workspace in the project', value: 'clone' },
+              { name: 'No, do not add any new services', value: 'no' }
+            ]
           }
-          spinner.stop()
-        }
-      }
-
-      let workspaces
-      // step 2, select with prompts
-      if (!selectedOrg) {
-        // todo make non-pure function
-        spinner.start()
-        spinner.text = 'Getting Organizations...'
-        const orgs = (await this.sdkClient.getOrganizations()).body
-        spinner.stop()
-
-        const orgChoices = helpers.orgsToPromptChoices(orgs)
-        selectedOrg = await this.customPrompt.promptSelect('Org', orgChoices)
-      }
-      logger.debug('Selected Org', JSON.stringify(selectedOrg, null, 2))
-
-      if (!selectedProject) {
-        spinner.start()
-        spinner.text = 'Getting Projects...'
-        const projects = (await this.sdkClient.getProjectsForOrg(selectedOrg.id))
-        spinner.stop()
-
-        const projectsChoices = helpers.projectsToPromptChoices(projects)
-        const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
-        selectedProject = await promptFunc('Project', projectsChoices)
-        if (!selectedProject) {
-          // TODO HERE PROJECT CREATION
-          // BUT I WANT THIS TO BE DELAYED ?
-        }
-      }
-      logger.debug('Selected Project', JSON.stringify(selectedProject, null, 2))
-
-      let selectedOrgId = this.orgId
-      let selectedProject = { id: this.projectId }, selectedWorkspace
-
-      if (this.orgId) {
-        selectedOrgId = this.orgId
-      }
-      const selectedOrg =
-
-      const { selectedOrg } = await this._getOrg()
-      const { selectedProject } = await this._getProject(selectedOrg.id)
-      // TODO what if workspace id is specified ! then no need for next steps..
-      const { selectedWorkspace, workspaces } = await this._getWorkspace(selectedOrg.id, selectedProject.id)
-
-      // persist selections
-      this.org = selectedOrg
-      this.project = selectedProject
-      this.workspace = selectedWorkspace
-
-      // get and persist support services in org
-      this.supportedServices = await this._getEnabledServicesForOrg(selectedOrg.id)
-
-      // todo should we allow to pass flags to not prompt in creation steps ?
-      // e.g. orgId === x, createProject = true, addServices = 'codes,..'
-
-      // add services to newly created Workspace
-      if (selectedWorkspace.isNew) {
-        let hasServices = false
-        if (!selectedProject.isNew) {
-          // if the project isn't new allow to copy over services from another workspace
-          const confirmServiceClone = await this.customPrompt.promptConfirm(
-            `Do you wish to clone service subscriptions from another Workspace into ${selectedWorkspace.name}?`
+          choice = await prompt.promptSelect(
+            `Do you wish to attach services to the new Workspace ${workspace.name}?`,
+            choices,
+            {}
           )
-          if (confirmServiceClone) {
-            hasServices = await this._cloneServices(selectedOrg.id, selectedProject, selectedWorkspace, workspaces, this.supportedServices, this.certDir)
+          // todo rewrite
+          if (choice === 'no') {
+            break
+          }
+          let serviceProperties
+          if (choice === 'add') {
+            serviceProperties = await this.consoleCLI.promptForServiceProperties(workspace.name, supportedServices)
+          }
+          if (choice === 'clone') {
+            // todo better message, no need need to reuse select workspace
+            const workspaceFrom = await this.consoleCLI.promptForSelectWorkspace(
+              workspaces,
+              { workspaceId: this.preSelectedWorkspaceId },
+              { allowCreate: false }
+            )
+            serviceProperties = await this.consoleCLI.getServicePropertiesFromWorkspace(workspaceFrom, projectId, workspace, supportedServices)
+          }
+          const confirm = await this.consoleCLI.confirmAddServicesToWorkspace(workspace.name, serviceProperties)
+          if (confirm) {
+            await this.consoleCLI.addServicesToWorkspace(orgId, project, workspace, this.certDir, serviceProperties)
+            // todo rewrite
+            break
           }
         }
-        if (!hasServices) {
-          // prompt and add services to workspace
-          await this._addServices(this.org.id, this.project, this.workspace, this.supportedServices, this.certDir)
-        }
       }
+
+      // 5. persist data for write step
+      this.supportedServices = supportedServices
+      this.org = org
+      this.project = project
+      this.workspace = workspace
     } catch (e) {
       spinner.stop()
       throw e
@@ -210,289 +202,9 @@ class ConsoleGenerator extends Generator {
   }
 
   async writing () {
-    spinner.start()
-
-    spinner.text = 'Downloading project config...'
-    const json = (await this.sdkClient.downloadWorkspaceJson(this.org.id, this.project.id, this.workspace.id)).body
-    spinner.stop()
-
-    // enhance configuration with supported services
-    json.project.org.details = {
-      ...json.project.org.details,
-      services: this.supportedServices.map(s => ({ name: s.name, code: s.code, type: s.type }))
-    }
-    spinner.stop()
-
+    const json = await this.consoleCLI.getWorkspaceConfig(this.org.id, this.project.id, this.workspace.id, this.supportedServices)
     this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
   }
-
-  // helpers
-
-  /**
-   * Prompt to select for an Org.
-   *
-   * @private
-   * @returns {object} { selectedOrg, orgs }
-   */
-  async _getOrg () {
-    // todo remove from here
-    if (this.orgId) {
-      return { id: this.orgId }
-    }
-
-    spinner.start()
-
-    spinner.text = 'Getting Organizations...'
-    const orgs = (await this.sdkClient.getOrganizations()).body
-
-    spinner.stop()
-
-    const orgChoices = helpers.orgsToPromptChoices(orgs)
-
-    const selectedOrg = await this.customPrompt.promptSelect('Org', orgChoices)
-
-    logger.debug('Selected Org', JSON.stringify(selectedOrg, null, 2))
-    return { selectedOrg, orgs }
-  }
-
-  /**
-   * Prompt to select a Project, or create a new one.
-   *
-   * @private
-   * @param {string} orgId the organization id
-   * @returns {object} { selectedProject, projects }
-   */
-  async _getProject (orgId) {
-    // todo remove from here
-    if (this.projectId) {
-      return { id: this.projectId }
-    }
-
-    spinner.start()
-
-    spinner.text = 'Getting Projects...'
-    const projects = (await this.sdkClient.getProjectsForOrg(orgId)).body
-    spinner.stop()
-
-    const projectsChoices = helpers.projectsToPromptChoices(projects)
-    const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
-    let selectedProject = await promptFunc('Project', projectsChoices)
-
-    if (!selectedProject) { // create new
-      console.log('Enter Project details:')
-      const name = await this.customPrompt.promptInput('Name', {
-        validate: validateProjectName
-      })
-      const title = await this.customPrompt.promptInput('Title', {
-        validate: validateProjectTitle
-      })
-      const description = await this.customPrompt.promptInput('Description', {
-        validate: validateProjectDescription,
-        default: ''
-      })
-
-      spinner.start()
-
-      // create the projectId
-      spinner.text = 'Creating Project...'
-      const createdProject = (await this.sdkClient.createProject(orgId, { name, title, description, type: this.projectType })).body
-      const projectId = createdProject.projectId
-
-      // create the missing stage workspace
-      spinner.text = 'Creating Stage Workspace...'
-      await this.sdkClient.createWorkspace(orgId, projectId, { name: 'Stage' })
-
-      // enable runtime on the Production and Stage workspace
-      spinner.text = 'Enabling Adobe I/O Runtime...'
-      const workspaces = (await (this.sdkClient.getWorkspacesForProject(orgId, projectId))).body
-      await Promise.all(workspaces.map(w => this.sdkClient.createRuntimeNamespace(orgId, projectId, w.id)))
-
-      // get complete record
-      spinner.text = 'Getting new Project...'
-      selectedProject = (await this.sdkClient.getProject(orgId, projectId)).body
-
-      selectedProject.isNew = true
-
-      spinner.stop()
-    }
-    logger.debug('Selected Project', JSON.stringify(selectedProject, null, 2))
-    return { selectedProject, projects }
-  }
-
-  /**
-   * Prompt to select a workspace, or create a new one.
-   *
-   * @private
-   * @param {string} orgId the organization id
-   * @param {string} projectId the project id
-   * @returns {object} { selectedWorkspace, workspaces }
-   */
-  async _getWorkspace (orgId, projectId) {
-    if (this.workspaceId) {
-      return { id: this.workspaceId }
-    }
-
-    spinner.start()
-
-    spinner.text = 'Getting Workspaces...'
-    const workspaces = (await this.sdkClient.getWorkspacesForProject(orgId, projectId)).body
-    spinner.stop()
-
-    const workspacesChoices = helpers.workspacesToPromptChoices(workspaces)
-    const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
-    let selectedWorkspace = await promptFunc('Workspace', workspacesChoices)
-
-    if (!selectedWorkspace) { // create new
-      console.log('Enter Workspace details:')
-      const name = await this.customPrompt.promptInput('Name', {
-        validate: validateWorkspaceName
-      })
-      const title = await this.customPrompt.promptInput('Title', {
-        default: '',
-        validate: validateWorkspaceTitle
-      })
-
-      spinner.start()
-
-      spinner.text = 'Creating Workspace...'
-      const createdWorkspace = (await this.sdkClient.createWorkspace(orgId, projectId, { name, title })).body
-
-      // enable runtime on the newly created workspace
-      spinner.text = 'Enabling Adobe I/O Runtime...'
-      await this.sdkClient.createRuntimeNamespace(orgId, projectId, createdWorkspace.workspaceId)
-
-      // get complete record
-      spinner.text = 'Getting new Workspace...'
-      selectedWorkspace = (await this.sdkClient.getWorkspace(orgId, projectId, createdWorkspace.workspaceId)).body
-
-      spinner.stop()
-
-      selectedWorkspace.isNew = true
-    }
-
-    logger.debug('Selected Workspace', JSON.stringify(selectedWorkspace, null, 2))
-    return { selectedWorkspace, workspaces }
-  }
-
-
-  /**
-   * @private
-   * @memberof ConsoleGenerator
-   */
-  async _cloneServices (orgId, project, toWorkspace, workspaces, supportedServices, certDir) {
-    // prompt to get the source workspace
-    const workspaceChoices = helpers.workspacesToPromptChoices(workspaces)
-    const fromWorkspace = await this.customPrompt.promptSelect(
-      'Workspace you want to clone the Service subscriptions from',
-      workspaceChoices
-    )
-
-    // get first entp credential attached to workspace
-    spinner.start(`Getting Services attached to the Workspace ${fromWorkspace.name}`)
-    const credentialResponse = await this.sdkClient.getCredentials(orgId, project.id, fromWorkspace.id)
-    const entpCredential = helpers.findFirstEntpCredential(credentialResponse)
-
-    const noServicesFoundMessage = `Could not find any Services attached to the Workspace ${fromWorkspace.name}`
-    if (!entpCredential) {
-      spinner.stop()
-      console.log(noServicesFoundMessage)
-      return false
-    }
-
-    // NOTE this is a workaround for a bug in the Console API:
-    //   By calling getSDKProperties via the graphQL API we make sure a backend cache for
-    //   LicenseConfigs is invalidated, otherwise getIntegrationDetails might return empty LicenseConfigs arrays.
-    const anyValidSDKCodeIsFine = 'AdobeAnalyticsSDK'
-    await getSDKPropertiesViaGraphQLApi(
-      this.sdkClient.env, this.sdkClient.orgId, this.sdkClient.accessToken,
-      orgId, entpCredential.id_integration, anyValidSDKCodeIsFine
-    )
-    // end workaround
-
-    // get services from the entp workspace credential
-    const integrationResponse = await this.sdkClient.getIntegration(orgId, entpCredential.id_integration)
-    const serviceProperties = integrationResponse.body.serviceProperties
-    const serviceNames = helpers.servicePropertiesToNames(serviceProperties)
-
-    // if no services attached, there is nothing to subscribe to, so return
-    if (serviceNames.length <= 0) {
-      spinner.stop()
-      console.log(noServicesFoundMessage)
-      return false
-    }
-
-    // confirmation step
-    spinner.stop()
-    console.log(`Workspace ${fromWorkspace.name} is subscribed to the following services:\n${JSON.stringify(serviceNames, null, 4)}`)
-    const confirmSubscription = await this.customPrompt.promptConfirm(
-      `  > do you confirm adding these services to the Workspace ${toWorkspace.name} ?`
-    )
-    if (!confirmSubscription) {
-      return false
-    }
-    // todo loop back to prompt for confirm clone from workspace !!
-
-    // create credentials in the new Workspace subscribe services to the new Workspace
-    const credential = await this._createEnterpriseCredentials(orgId, project, toWorkspace, certDir)
-
-    spinner.start(`Subscribing to services from Workspace ${fromWorkspace.name} in Workspace ${toWorkspace.name}`)
-
-    // NOTE 2: this is a workaround for another bug in the returned LicenseConfigs list,
-    //  After the caching issue, where the returned list may be empty, now every
-    //  list contains all the LicenseConfigs for all services, so this list must be
-    //  filtered to map to service specific licenseConfigs
-    const fixedServiceProperties = helpers.fixServiceProperties(serviceProperties, supportedServices)
-
-    // prepare the service info payload, with License Configs "Add" payload for each services
-    const serviceInfo = helpers.servicePropertiesToServiceSubscriptionPayload(fixedServiceProperties)
-
-    // finally subscribe to the services
-    const subscriptionResponse = await this.sdkClient.subscribeCredentialToServices(
-      orgId,
-      project.id,
-      toWorkspace.id,
-      'entp',
-      credential.id,
-      serviceInfo
-    )
-    spinner.stop()
-
-    logger.debug('Subscription Response', JSON.stringify(subscriptionResponse.body, null, 2))
-    return true
-  }
-
-  /**
-   * @private
-   * @memberof ConsoleGenerator
-   */
-
-
-/**
- * @private
- */
-// TODO move to aio-lib-console
-async function getSDKPropertiesViaGraphQLApi (env, apiKey, token, orgId, intId, sdkCode) {
-  const CONSOLE_GRAPHQL_ENDPOINT = {
-    stage: 'https://console-stage.adobe.io/graphql',
-    prod: 'https://console.adobe.io/graphql'
-  }
-  const res = await fetch(
-    CONSOLE_GRAPHQL_ENDPOINT[env],
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        operationName: 'GetSdkProperties',
-        query: 'query GetSdkProperties($orgId: String!, $intId: String!, $sdkCode: String!) {  getSdkProperties(orgId: $orgId, intId: $intId, sdkCode: $sdkCode) {    licenseConfigs {      id      name      productId      description      selected      __typename    }    __typename  }}',
-        variables: { intId, orgId, sdkCode }
-      })
-    })
-  const content = await res.json()
-  return content
 }
 
 module.exports = ConsoleGenerator
