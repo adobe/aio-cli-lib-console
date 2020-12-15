@@ -15,7 +15,6 @@ const loggerNamespace = '@adobe/generator-aio-console'
 const logger = require('@adobe/aio-lib-core-logging')(loggerNamespace, { provider: 'debug', level: process.env.LOG_LEVEL || 'debug' })
 
 const ConsoleCLILib = require('../../lib/cli-console')
-const prompt = require('../../lib/prompt')
 
 /*
   'initializing',
@@ -95,7 +94,7 @@ class ConsoleGenerator extends Generator {
     this.preSelectedProjectId = this.preSelectedOrgId ? this.options[Option.PROJECT_ID] : null
     this.preSelectedWorkspaceId = this.preSelectedProjectId ? this.options[Option.WORKSPACE_ID] : null
 
-    this.consoleCLI = await ConsoleCLILib.init({ env, accessToken, apiKey })
+    this.consoleCLI = await ConsoleCLILib.init({ env, accessToken, apiKey }, spinner, {})
   }
 
   async prompting () {
@@ -111,7 +110,6 @@ class ConsoleGenerator extends Generator {
       const orgId = org.id
 
       // 2. select or create project
-      // todo consoleCli.selectOrCreate ?
       const projects = await this.consoleCLI.getProjects(orgId)
       let project = await this.consoleCLI.promptForSelectProject(
         projects,
@@ -125,8 +123,8 @@ class ConsoleGenerator extends Generator {
         project.isNew = true
       }
       const projectId = project.id
+
       // 3. select or create workspace
-      // todo consoleCli.selectOrCreate ?
       const workspaces = await this.consoleCLI.getWorkspaces(orgId, projectId)
       let workspace = await this.consoleCLI.promptForSelectWorkspace(
         workspaces,
@@ -135,7 +133,7 @@ class ConsoleGenerator extends Generator {
       )
       if (!workspace) {
         // user has escaped workspace selection prompt, let's create a new one
-        const workspaceDetails = await this.consoleCLI.promptForCreateWorkspaceDetails
+        const workspaceDetails = await this.consoleCLI.promptForCreateWorkspaceDetails()
         workspace = await this.consoleCLI.createWorkspace(orgId, projectId, workspaceDetails)
         workspace.isNew = true
       }
@@ -143,50 +141,46 @@ class ConsoleGenerator extends Generator {
       // retrieve supported services in org
       const supportedServices = await this.consoleCLI.getEnabledServicesForOrg(orgId)
 
-      // 4. add services if needed
+      // 4. add services if workspace is new
       if (workspace.isNew) {
-        // todo hide behind cli-console, do not require prompt ?
-        let choice = null
-        while (choice !== 'no') {
-          let choices = [
-            { name: 'Yes, select services to add', value: 'add' },
-            { name: 'No, do not add any new services', value: 'no' }
-          ]
-          if (!project.isNew) {
-            choices = [
-              { name: 'Yes, select services to add', value: 'add' },
-              { name: 'Yes, clone services from another workspace in the project', value: 'clone' },
-              { name: 'No, do not add any new services', value: 'no' }
-            ]
-          }
-          choice = await prompt.promptSelect(
-            `Do you wish to attach services to the new Workspace ${workspace.name}?`,
-            choices,
-            {}
+        // todo move this loop to lib ?
+        while (true) {
+          // if project is not new, allow to clone services from another workspace
+          const operation = await this.consoleCLI.promptForAddServicesOperation(
+            workspace.name,
+            { cloneChoice: !project.isNew, nopChoice: true }
           )
-          // todo rewrite
-          if (choice === 'no') {
+
+          if (operation === 'nop') {
+            // done
             break
           }
+
           let serviceProperties
-          if (choice === 'add') {
-            serviceProperties = await this.consoleCLI.promptForServiceProperties(workspace.name, supportedServices)
+
+          if (operation === 'add') {
+            serviceProperties = await this.consoleCLI.promptForServiceProperties(
+              workspace.name,
+              supportedServices
+            )
           }
-          if (choice === 'clone') {
-            // todo better message, no need need to reuse select workspace
+
+          if (operation === 'clone') {
             const workspaceFrom = await this.consoleCLI.promptForSelectWorkspace(
               workspaces,
               { workspaceId: this.preSelectedWorkspaceId },
               { allowCreate: false }
             )
-            serviceProperties = await this.consoleCLI.getServicePropertiesFromWorkspace(workspaceFrom, projectId, workspace, supportedServices)
+            serviceProperties = await this.consoleCLI.getServicePropertiesFromWorkspace(orgId, projectId, workspaceFrom, supportedServices)
           }
+
           const confirm = await this.consoleCLI.confirmAddServicesToWorkspace(workspace.name, serviceProperties)
           if (confirm) {
             await this.consoleCLI.addServicesToWorkspace(orgId, project, workspace, this.certDir, serviceProperties)
-            // todo rewrite
+            // done
             break
           }
+          // not confirm == restart loop
         }
       }
 
@@ -196,14 +190,23 @@ class ConsoleGenerator extends Generator {
       this.project = project
       this.workspace = workspace
     } catch (e) {
+      // todo spinner should not be handled here..
       spinner.stop()
+      logger.debug(e)
       throw e
     }
   }
 
   async writing () {
-    const json = await this.consoleCLI.getWorkspaceConfig(this.org.id, this.project.id, this.workspace.id, this.supportedServices)
-    this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
+    try {
+      const json = await this.consoleCLI.getWorkspaceConfig(this.org.id, this.project.id, this.workspace.id, this.supportedServices)
+      this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
+    } catch (e) {
+      // todo spinner should not be handled here..
+      spinner.stop()
+      logger.debug(e)
+      throw e
+    }
   }
 }
 
