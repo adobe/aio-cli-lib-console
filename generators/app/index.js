@@ -37,9 +37,7 @@ const Default = {
   DESTINATION_FILE: 'console.json',
   API_KEY: ApiKey,
   ENV: 'prod',
-  ALLOW_CREATE: false,
-  PROJECT_TYPE: 'jaeger',
-  CERT_VALID_DAYS: 365
+  ALLOW_CREATE: false
 }
 
 const Option = {
@@ -65,11 +63,11 @@ class ConsoleGenerator extends Generator {
     this.option(Option.ACCESS_TOKEN, { type: String })
     this.option(Option.ENV, { type: String, default: Default.ENV })
     this.option(Option.ALLOW_CREATE, { type: Boolean, default: Default.ALLOW_CREATE })
-    this.option(Option.PROJECT_TYPE, { type: String, default: Default.PROJECT_TYPE })
 
     this.option(Option.ORG_ID, { type: String })
     this.option(Option.PROJECT_ID, { type: String })
     this.option(Option.WORKSPACE_ID, { type: String })
+    this.option(Option.CERT_DIR, { type: String })
 
     const env = this.options[Option.ENV]
     this.option(Option.API_KEY, { type: String, default: Default.API_KEY[env] })
@@ -85,7 +83,6 @@ class ConsoleGenerator extends Generator {
     const apiKey = this.options[Option.API_KEY]
 
     this.allowCreate = this.options[Option.ALLOW_CREATE]
-    this.projectType = this.options[Option.PROJECT_TYPE]
     this.certDir = this.options[Option.CERT_DIR]
 
     // hierarchy of ids:
@@ -94,7 +91,7 @@ class ConsoleGenerator extends Generator {
     this.preSelectedProjectId = this.preSelectedOrgId ? this.options[Option.PROJECT_ID] : null
     this.preSelectedWorkspaceId = this.preSelectedProjectId ? this.options[Option.WORKSPACE_ID] : null
 
-    this.consoleCLI = await ConsoleCLILib.init({ env, accessToken, apiKey }, spinner, {})
+    this.consoleCLI = await ConsoleCLILib.init({ env, accessToken, apiKey }, {})
   }
 
   async prompting () {
@@ -142,7 +139,7 @@ class ConsoleGenerator extends Generator {
       const supportedServices = await this.consoleCLI.getEnabledServicesForOrg(orgId)
 
       // 4. add services if workspace is new
-      if (workspace.isNew) {
+      if (workspace.isNew || project.isNew) {
         // todo move this loop to lib ?
         while (true) {
           // if project is not new, allow to clone services from another workspace
@@ -190,9 +187,7 @@ class ConsoleGenerator extends Generator {
       this.project = project
       this.workspace = workspace
     } catch (e) {
-      // todo spinner should not be handled here..
-      spinner.stop()
-      logger.debug(e)
+      logger.error(e)
       throw e
     }
   }
@@ -202,9 +197,7 @@ class ConsoleGenerator extends Generator {
       const json = await this.consoleCLI.getWorkspaceConfig(this.org.id, this.project.id, this.workspace.id, this.supportedServices)
       this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
     } catch (e) {
-      // todo spinner should not be handled here..
-      spinner.stop()
-      logger.debug(e)
+      logger.error(e)
       throw e
     }
   }
