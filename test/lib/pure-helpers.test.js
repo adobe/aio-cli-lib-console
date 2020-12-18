@@ -10,6 +10,7 @@ governing permissions and limitations under the License.
 */
 const helpers = require('../../lib/pure-helpers')
 const dataMocks = require('../data-mocks')
+const path = require('path')
 
 test('exports', () => {
   expect(typeof helpers.orgsToPromptChoices).toBe('function')
@@ -104,6 +105,101 @@ describe('licenseConfigsToPromptChoices', () => {
       { name: licenseConfigs[0].name, value: licenseConfigs[0] },
       { name: licenseConfigs[1].name, value: licenseConfigs[1] }
     ])
+  })
+})
+
+describe('fixServiceProperties', () => {
+  test('with serviceProperties that need fixing', () => {
+    const allLicenseConfigs = dataMocks.integration.serviceProperties
+      .filter(sp => !!sp.licenseConfigs)
+      .flatMap(sp => sp.licenseConfigs)
+    const brokenServiceProperties = dataMocks.integration.serviceProperties
+      .map(sp => ({ ...sp, licenseConfigs: allLicenseConfigs }))
+    expect(helpers.fixServiceProperties(brokenServiceProperties, dataMocks.services))
+      .toEqual(dataMocks.integration.serviceProperties)
+  })
+})
+
+test('servicePropertiesToServiceSubscriptionPayload', () => {
+  const serviceProperties = dataMocks.integration.serviceProperties
+  expect(helpers.servicePropertiesToServiceSubscriptionPayload(serviceProperties))
+    .toEqual([
+      {
+        licenseConfigs: [
+          { id: serviceProperties[0].licenseConfigs[0].id, op: 'add', productId: serviceProperties[0].licenseConfigs[0].productId }
+        ],
+        roles: [{ code: serviceProperties[0].roles[0].code, id: serviceProperties[0].roles[0].id, name: null }],
+        sdkCode: serviceProperties[0].sdkCode
+      },
+      {
+        licenseConfigs: [
+          { id: serviceProperties[1].licenseConfigs[0].id, op: 'add', productId: serviceProperties[1].licenseConfigs[0].productId },
+          { id: serviceProperties[1].licenseConfigs[1].id, op: 'add', productId: serviceProperties[1].licenseConfigs[1].productId }
+        ],
+        roles: [
+          { code: serviceProperties[1].roles[0].code, id: serviceProperties[1].roles[0].id, name: null },
+          { code: serviceProperties[1].roles[1].code, id: serviceProperties[1].roles[1].id, name: null }
+        ],
+        sdkCode: serviceProperties[1].sdkCode
+      },
+      {
+        licenseConfigs: null,
+        roles: null,
+        sdkCode: serviceProperties[2].sdkCode
+      }
+    ])
+})
+
+test('getCertFilesLocation', () => {
+  expect(helpers.getCertFilesLocation('orgid', 'projectname', 'workspacename', 'certdir')).toEqual({
+    projectCertDir: `certdir${path.sep}orgid-projectname`,
+    publicKeyFileName: 'workspacename.pem',
+    privateKeyFileName: 'workspacename.key',
+    publicKeyFilePath: `certdir${path.sep}orgid-projectname${path.sep}workspacename.pem`,
+    privateKeyFilePath: `certdir${path.sep}orgid-projectname${path.sep}workspacename.key`
+  })
+})
+
+describe('getAddServicesOperationPromptChoices', () => {
+  test('default', () => {
+    expect(helpers.getAddServicesOperationPromptChoices()).toEqual(
+      [
+        { name: 'Yes, select services to add', value: 'add' },
+        { name: 'No, do not add any new services', value: 'nop' }
+      ]
+    )
+  })
+  test('cloneChoice=false, nopChoice = false', () => {
+    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: false, nopChoice: false })).toEqual(
+      [
+        { name: 'Yes, select services to add', value: 'add' }
+      ]
+    )
+  })
+  test('cloneChoice=false, nopChoice = true', () => {
+    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: false, nopChoice: true })).toEqual(
+      [
+        { name: 'Yes, select services to add', value: 'add' },
+        { name: 'No, do not add any new services', value: 'nop' }
+      ]
+    )
+  })
+  test('cloneChoice=true, nopChoice = false', () => {
+    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: true, nopChoice: false })).toEqual(
+      [
+        { name: 'Yes, select services to add', value: 'add' },
+        { name: 'Yes, clone services from another workspace in the project', value: 'clone' }
+      ]
+    )
+  })
+  test('cloneChoice=true, nopChoice = true', () => {
+    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: true, nopChoice: true })).toEqual(
+      [
+        { name: 'Yes, select services to add', value: 'add' },
+        { name: 'Yes, clone services from another workspace in the project', value: 'clone' },
+        { name: 'No, do not add any new services', value: 'nop' }
+      ]
+    )
   })
 })
 

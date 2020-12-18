@@ -389,7 +389,7 @@ const integration = {
         services[1].properties.licenseConfigs[1]
       ]
     },
-    { sdkCode: services[2].code, name: services[2].name, roles: [], licenseConfigs: [] }
+    { sdkCode: services[2].code, name: services[2].name, roles: null, licenseConfigs: null }
   ],
   readOnly: false,
   technicalAcctId: 'some@techacct.adobe.com',

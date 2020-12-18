@@ -10,7 +10,6 @@ governing permissions and limitations under the License.
 */
 
 const Generator = require('yeoman-generator')
-const spinner = require('ora')()
 const loggerNamespace = '@adobe/generator-aio-console'
 const logger = require('@adobe/aio-lib-core-logging')(loggerNamespace, { provider: 'debug', level: process.env.LOG_LEVEL || 'debug' })
 
