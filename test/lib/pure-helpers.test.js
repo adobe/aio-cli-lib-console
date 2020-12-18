@@ -17,14 +17,12 @@ test('exports', () => {
   expect(typeof helpers.workspacesToPromptChoices).toBe('function')
   expect(typeof helpers.servicesToPromptChoices).toBe('function')
   expect(typeof helpers.licenseConfigsToPromptChoices).toBe('function')
-  expect(typeof helpers.getUniqueServiceCode).toBe('function')
   expect(typeof helpers.filterEnabledServices).toBe('function')
   expect(typeof helpers.findFirstEntpCredential).toBe('function')
   expect(typeof helpers.servicePropertiesToNames).toBe('function')
   expect(typeof helpers.fixServiceProperties).toBe('function')
   expect(typeof helpers.servicePropertiesToServiceSubscriptionPayload).toBe('function')
   expect(typeof helpers.getCertFilesLocation).toBe('function')
-  expect(typeof helpers.missingInputs).toBe('function')
   expect(typeof helpers.findOrgOrThrow).toBe('function')
   expect(typeof helpers.findProjectOrThrow).toBe('function')
   expect(typeof helpers.findWorkspaceOrThrow).toBe('function')
@@ -51,7 +49,7 @@ describe('projectsToPromptChoices', () => {
 })
 
 describe('workspacesToPromptChoices', () => {
-  test('with input that not enabled and w/o runtime namespace workspaces', () => {
+  test('with some workspaces that are not enabled and w/o runtime namespace workspaces', () => {
     // expects in reverse order (latest created first)
     expect(helpers.workspacesToPromptChoices(dataMocks.workspaces)).toEqual([
       { name: dataMocks.workspaces[0].name, value: dataMocks.workspaces[0] },
@@ -62,7 +60,51 @@ describe('workspacesToPromptChoices', () => {
 })
 
 describe('servicesToPromptChoices', () => {
+  test('with some not enabled services and some not entp services', () => {
+    expect(helpers.servicesToPromptChoices(dataMocks.services)).toEqual([
+      { name: dataMocks.services[0].name, value: dataMocks.services[0] },
+      { name: dataMocks.services[1].name, value: dataMocks.services[1] },
+      { name: dataMocks.services[2].name, value: dataMocks.services[2] },
+      { name: dataMocks.services[3].name, value: dataMocks.services[3] }
+    ])
+  })
+})
 
+test('filterEnabledServices', () => {
+  expect(helpers.filterEnabledServices(dataMocks.services)).toEqual([
+    dataMocks.services[0],
+    dataMocks.services[1],
+    dataMocks.services[2],
+    dataMocks.services[3],
+    dataMocks.services[5]
+  ])
+})
+
+describe('findFirstEntpCredential', () => {
+  test('when there is one', () => {
+    expect(helpers.findFirstEntpCredential(dataMocks.integrations))
+      .toEqual(dataMocks.integrations[2])
+  })
+  test('when there is none', () => {
+    expect(helpers.findFirstEntpCredential([])).toEqual(undefined)
+  })
+})
+
+test('servicePropertiesToNames', () => {
+  const serviceProperties = dataMocks.integration.serviceProperties
+  expect(helpers.servicePropertiesToNames(serviceProperties)).toEqual([
+    serviceProperties[0].name, serviceProperties[1].name, serviceProperties[2].name
+  ])
+})
+
+describe('licenseConfigsToPromptChoices', () => {
+  test('with input licenseConfigs', () => {
+    const licenseConfigs = dataMocks.services[0].properties.licenseConfigs
+    expect(helpers.licenseConfigsToPromptChoices(licenseConfigs)).toEqual([
+      { name: licenseConfigs[0].name, value: licenseConfigs[0] },
+      { name: licenseConfigs[1].name, value: licenseConfigs[1] }
+    ])
+  })
 })
 
 describe('findOrgOrThrow', () => {

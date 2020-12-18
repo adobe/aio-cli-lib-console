@@ -198,6 +198,160 @@ const workspaces = [{
 const workspace = workspaces[2]
 const runtimeNamespace = workspace.runtime_namespace
 
+// returned from getServicesForORG
+const services = [
+  {
+    name: 'First SDK',
+    code: 'firstSDK',
+    enabled: true,
+    type: 'entp',
+    platformList: null,
+    docsUrl: null,
+    learnMoreUrl: null,
+    description: null,
+    atlasCollectionCode: null,
+    atlasDefaultPlanCode: null,
+    properties: {
+      roles: [
+        { id: 1000, code: 'ent_somerole', name: null },
+        { id: 1100, code: 'ent_role_a', name: null }
+      ],
+      licenseConfigs: [{
+        id: '0123456',
+        name: 'config',
+        productId: 'AAAAACCCCCCVV2EEEEE1E',
+        description: null
+      },
+      {
+        id: '0123457',
+        name: 'configB',
+        productId: 'AAAAACCCCCCVV2EEEEE1E',
+        description: null
+      }
+      ]
+    },
+    requiresApproval: false
+  },
+  {
+    name: 'Second SDK',
+    code: 'secondSDK',
+    enabled: true,
+    type: 'entp',
+    platformList: null,
+    docsUrl: null,
+    learnMoreUrl: null,
+    description: null,
+    atlasCollectionCode: null,
+    atlasDefaultPlanCode: null,
+    properties: {
+      roles: [
+        { id: 1001, code: 'ent_someotherrole', name: null },
+        { id: 1002, code: 'ent_someotherrole', name: null }
+      ],
+      licenseConfigs: [
+        {
+          id: '1234567',
+          name: 'some configuration',
+          productId: 'AAAAABBBBBVV2VVEEE1E',
+          description: null
+        },
+        {
+          id: '7654321',
+          name: 'some other configuration',
+          productId: 'AAAAABBBBBVV2VVEEE1E',
+          description: null
+        }
+      ]
+    },
+    requiresApproval: false
+  },
+  {
+    name: 'Third SDK',
+    code: 'thirdSDK',
+    enabled: true,
+    type: 'entp',
+    platformList: null,
+    docsUrl: null,
+    learnMoreUrl: null,
+    description: null,
+    atlasCollectionCode: null,
+    atlasDefaultPlanCode: null,
+    properties: null,
+    requiresApproval: false
+  },
+  {
+    name: 'Fourth SDK',
+    code: 'fourthSDK',
+    enabled: true,
+    type: 'entp',
+    platformList: null,
+    docsUrl: null,
+    learnMoreUrl: null,
+    description: null,
+    atlasCollectionCode: null,
+    atlasDefaultPlanCode: null,
+    properties: null,
+    requiresApproval: false
+  },
+  {
+    name: 'Fifth SDK',
+    code: 'fifthSDK',
+    enabled: false,
+    type: 'entp',
+    platformList: null,
+    docsUrl: null,
+    learnMoreUrl: null,
+    description: null,
+    atlasCollectionCode: null,
+    atlasDefaultPlanCode: null,
+    properties: null,
+    requiresApproval: false
+  },
+  {
+    name: 'Sixth SDK',
+    code: 'sixthSDK',
+    enabled: true,
+    type: 'adobeid',
+    platformList: null,
+    docsUrl: null,
+    learnMoreUrl: null,
+    description: null,
+    atlasCollectionCode: null,
+    atlasDefaultPlanCode: null,
+    properties: null,
+    requiresApproval: false
+  }
+]
+
+// response from getCredentials
+const integrations = [
+  {
+    id: '111111',
+    id_workspace: workspace.id,
+    integration_type: 'other',
+    flow_type: 'entp'
+  },
+  {
+    id: '111112',
+    id_workspace: workspace.id,
+    integration_type: 'service',
+    flow_type: 'other'
+  },
+  {
+    id: '222222',
+    id_workspace: workspace.id,
+    integration_type: 'service',
+    flow_type: 'entp'
+  },
+  {
+    id: '33333',
+    id_workspace: workspace.id,
+    integration_type: 'service',
+    flow_type: 'entp'
+  }
+]
+
+// as returned by getIntegration
 const integration = {
   id: '222222',
   orgId: org.id,
@@ -210,28 +364,46 @@ const integration = {
   createdDate: 1222111600000,
   lastModifiedDate: 1222111777000,
   namespaceEnabled: false,
-  technicalAccountId: '2CD62F475FD9D69D0A495F8A@techacct.adobe.com',
-  technicalAccountEmail: 'd4388783-a161-4292-b46d-b4d57fef75d1@techacct.adobe.com',
+  technicalAccountId: 'some@techacct.adobe.com',
+  technicalAccountEmail: 'some222222@techacct.adobe.com',
   serviceProperties: [
-    { sdkCode: 'DvaQueueSDK', name: 'Task Queue Manager', roles: [{ id: 1025, code: 'ent_default', name: null }], licenseConfigs: [] },
-    { sdkCode: 'StockSDK', name: 'Adobe Stock', roles: [{ id: 1006, code: 'ent_stocksearch', name: null }], licenseConfigs: [] },
-    { sdkCode: 'Sensei Enterprise Beta (MAX 2018)', name: 'Content AI (Beta)', roles: [{ id: 1024, code: 'ent_sensei_image', name: null }], licenseConfigs: [] },
-    { sdkCode: 'McGdprSDK', name: 'Privacy Service API', roles: [{ id: 1026, code: 'ent_gdpr', name: null }], licenseConfigs: [] }
+    {
+      sdkCode: services[0].code,
+      name: services[0].name,
+      roles: [
+        services[0].properties.roles[0]
+      ],
+      licenseConfigs: [
+        services[0].properties.licenseConfigs[1]
+      ]
+    },
+    {
+      sdkCode: services[1].code,
+      name: services[1].name,
+      roles: [
+        services[1].properties.roles[0],
+        services[1].properties.roles[1]
+      ],
+      licenseConfigs: [
+        services[1].properties.licenseConfigs[0],
+        services[1].properties.licenseConfigs[1]
+      ]
+    },
+    { sdkCode: services[2].code, name: services[2].name, roles: [], licenseConfigs: [] }
   ],
   readOnly: false,
-  technicalAcctId: '2CD62F475FD9D69D0A495F8A@techacct.adobe.com',
-  sdkList: ['DvaQueueSDK', 'StockSDK', 'Sensei Enterprise Beta (MAX 2018)', 'McGdprSDK']
+  technicalAcctId: 'some@techacct.adobe.com',
+  sdkList: [services[0].code, services[1].code, services[2].code]
 }
-
-const integrationId = integration.id
 
 module.exports = {
   organizations,
   projects,
   workspaces,
-  integration,
   org,
   project,
   workspace,
-  integrationId
+  integrations,
+  integration,
+  services
 }
