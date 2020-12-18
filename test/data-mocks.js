@@ -196,7 +196,6 @@ const workspaces = [{
 }]
 
 const workspace = workspaces[2]
-const runtimeNamespace = workspace.runtime_namespace
 
 // returned from getServicesForORG
 const services = [
@@ -323,6 +322,14 @@ const services = [
   }
 ]
 
+const enabledServices = [
+  services[0],
+  services[1],
+  services[2],
+  services[3],
+  services[5]
+]
+
 // response from getCredentials
 const integrations = [
   {
@@ -396,6 +403,15 @@ const integration = {
   sdkList: [services[0].code, services[1].code, services[2].code]
 }
 
+const workspaceJson = {
+  // incomplete
+  project: {
+    org: {
+      id: org.id
+    }
+  }
+}
+
 module.exports = {
   organizations,
   projects,
@@ -405,5 +421,7 @@ module.exports = {
   workspace,
   integrations,
   integration,
-  services
+  services,
+  workspaceJson,
+  enabledServices
 }

@@ -72,13 +72,7 @@ describe('servicesToPromptChoices', () => {
 })
 
 test('filterEnabledServices', () => {
-  expect(helpers.filterEnabledServices(dataMocks.services)).toEqual([
-    dataMocks.services[0],
-    dataMocks.services[1],
-    dataMocks.services[2],
-    dataMocks.services[3],
-    dataMocks.services[5]
-  ])
+  expect(helpers.filterEnabledServices(dataMocks.services)).toEqual(dataMocks.enabledServices)
 })
 
 describe('findFirstEntpCredential', () => {
