@@ -32,42 +32,39 @@ test('exports', () => {
 
 describe('orgsToPromptChoices', () => {
   test('with input that has entp and non entp orgs', () => {
-    expect(helpers.orgsToPromptChoices(dataMocks.organizations)).toEqual([
-      { name: dataMocks.organizations[0].name, value: dataMocks.organizations[0] },
-      { name: dataMocks.organizations[2].name, value: dataMocks.organizations[2] }
-    ])
+    expect(helpers.orgsToPromptChoices(dataMocks.organizations))
+      .toEqual(dataMocks.promptChoices.orgs)
   })
 })
 
 describe('projectsToPromptChoices', () => {
   test('with input that has deleted, not enabled and non-jaeger projects', () => {
     // expects in reverse order (latest created first)
-    expect(helpers.projectsToPromptChoices(dataMocks.projects)).toEqual([
-      { name: dataMocks.projects[4].title, value: dataMocks.projects[4] },
-      { name: dataMocks.projects[1].title, value: dataMocks.projects[1] }
-    ])
+    expect(helpers.projectsToPromptChoices(dataMocks.projects))
+      .toEqual(dataMocks.promptChoices.projects)
   })
 })
 
 describe('workspacesToPromptChoices', () => {
   test('with some workspaces that are not enabled and w/o runtime namespace workspaces', () => {
     // expects in reverse order (latest created first)
-    expect(helpers.workspacesToPromptChoices(dataMocks.workspaces)).toEqual([
-      { name: dataMocks.workspaces[0].name, value: dataMocks.workspaces[0] },
-      { name: dataMocks.workspaces[1].name, value: dataMocks.workspaces[1] },
-      { name: dataMocks.workspaces[2].name, value: dataMocks.workspaces[2] }
-    ])
+    expect(helpers.workspacesToPromptChoices(dataMocks.workspaces))
+      .toEqual(dataMocks.promptChoices.workspaces)
+  })
+})
+
+describe('licenseConfigsToPromptChoices', () => {
+  test('with input licenseConfigs', () => {
+    const licenseConfigs = dataMocks.serviceProperties[1].licenseConfigs
+    expect(helpers.licenseConfigsToPromptChoices(licenseConfigs))
+      .toEqual(dataMocks.promptChoices.licenseConfigs[1])
   })
 })
 
 describe('servicesToPromptChoices', () => {
   test('with some not enabled services and some not entp services', () => {
-    expect(helpers.servicesToPromptChoices(dataMocks.services)).toEqual([
-      { name: dataMocks.services[0].name, value: dataMocks.services[0] },
-      { name: dataMocks.services[1].name, value: dataMocks.services[1] },
-      { name: dataMocks.services[2].name, value: dataMocks.services[2] },
-      { name: dataMocks.services[3].name, value: dataMocks.services[3] }
-    ])
+    expect(helpers.servicesToPromptChoices(dataMocks.services))
+      .toEqual(dataMocks.promptChoices.services)
   })
 })
 
@@ -86,62 +83,27 @@ describe('findFirstEntpCredential', () => {
 })
 
 test('servicePropertiesToNames', () => {
-  const serviceProperties = dataMocks.integration.serviceProperties
+  const serviceProperties = dataMocks.serviceProperties
   expect(helpers.servicePropertiesToNames(serviceProperties)).toEqual([
     serviceProperties[0].name, serviceProperties[1].name, serviceProperties[2].name
   ])
 })
 
-describe('licenseConfigsToPromptChoices', () => {
-  test('with input licenseConfigs', () => {
-    const licenseConfigs = dataMocks.services[0].properties.licenseConfigs
-    expect(helpers.licenseConfigsToPromptChoices(licenseConfigs)).toEqual([
-      { name: licenseConfigs[0].name, value: licenseConfigs[0] },
-      { name: licenseConfigs[1].name, value: licenseConfigs[1] }
-    ])
-  })
-})
-
 describe('fixServiceProperties', () => {
   test('with serviceProperties that need fixing', () => {
-    const allLicenseConfigs = dataMocks.integration.serviceProperties
+    const allLicenseConfigs = dataMocks.serviceProperties
       .filter(sp => !!sp.licenseConfigs)
       .flatMap(sp => sp.licenseConfigs)
-    const brokenServiceProperties = dataMocks.integration.serviceProperties
+    const brokenServiceProperties = dataMocks.serviceProperties
       .map(sp => ({ ...sp, licenseConfigs: allLicenseConfigs }))
     expect(helpers.fixServiceProperties(brokenServiceProperties, dataMocks.services))
-      .toEqual(dataMocks.integration.serviceProperties)
+      .toEqual(dataMocks.serviceProperties)
   })
 })
 
 test('servicePropertiesToServiceSubscriptionPayload', () => {
-  const serviceProperties = dataMocks.integration.serviceProperties
-  expect(helpers.servicePropertiesToServiceSubscriptionPayload(serviceProperties))
-    .toEqual([
-      {
-        licenseConfigs: [
-          { id: serviceProperties[0].licenseConfigs[0].id, op: 'add', productId: serviceProperties[0].licenseConfigs[0].productId }
-        ],
-        roles: [{ code: serviceProperties[0].roles[0].code, id: serviceProperties[0].roles[0].id, name: null }],
-        sdkCode: serviceProperties[0].sdkCode
-      },
-      {
-        licenseConfigs: [
-          { id: serviceProperties[1].licenseConfigs[0].id, op: 'add', productId: serviceProperties[1].licenseConfigs[0].productId },
-          { id: serviceProperties[1].licenseConfigs[1].id, op: 'add', productId: serviceProperties[1].licenseConfigs[1].productId }
-        ],
-        roles: [
-          { code: serviceProperties[1].roles[0].code, id: serviceProperties[1].roles[0].id, name: null },
-          { code: serviceProperties[1].roles[1].code, id: serviceProperties[1].roles[1].id, name: null }
-        ],
-        sdkCode: serviceProperties[1].sdkCode
-      },
-      {
-        licenseConfigs: null,
-        roles: null,
-        sdkCode: serviceProperties[2].sdkCode
-      }
-    ])
+  expect(helpers.servicePropertiesToServiceSubscriptionPayload(dataMocks.serviceProperties))
+    .toEqual(dataMocks.subscribeServicesPayload)
 })
 
 test('getCertFilesLocation', () => {
@@ -199,27 +161,38 @@ describe('getAddServicesOperationPromptChoices', () => {
 
 describe('findOrgOrThrow', () => {
   test('with orgId found in organizations', () => {
-    expect(helpers.findOrgOrThrow(dataMocks.org.id, dataMocks.organizations)).toEqual(dataMocks.org)
+    expect(helpers.findOrgOrThrow(dataMocks.org.id, dataMocks.organizations))
+      .toEqual(dataMocks.org)
   })
   test('with orgId not found in organizations', () => {
-    expect(() => helpers.findOrgOrThrow('iamanonexistingid', dataMocks.organizations)).toThrow('Org with id iamanonexistingid not found')
+    expect(() => helpers.findOrgOrThrow('iamanonexistingid', dataMocks.organizations))
+      .toThrow('Org with id iamanonexistingid not found')
   })
 })
 
 describe('findProjectOrThrow', () => {
   test('with projectId found in projects', () => {
-    expect(helpers.findProjectOrThrow(dataMocks.project.id, dataMocks.projects)).toEqual(dataMocks.project)
+    expect(helpers.findProjectOrThrow(dataMocks.project.id, dataMocks.projects))
+      .toEqual(dataMocks.project)
   })
   test('with projectId not found in projects', () => {
-    expect(() => helpers.findProjectOrThrow('iamanonexistingid', dataMocks.projects)).toThrow('Project with id iamanonexistingid not found')
+    expect(() => helpers.findProjectOrThrow('iamanonexistingid', dataMocks.projects))
+      .toThrow('Project with id iamanonexistingid not found')
   })
 })
 
 describe('findWorkspaceOrThrow', () => {
   test('with workspaceId found in workspaces', () => {
-    expect(helpers.findWorkspaceOrThrow(dataMocks.workspace.id, dataMocks.workspaces)).toEqual(dataMocks.workspace)
+    expect(helpers.findWorkspaceOrThrow(dataMocks.workspace.id, dataMocks.workspaces))
+      .toEqual(dataMocks.workspace)
   })
   test('with workspaceId not found in workspaces', () => {
-    expect(() => helpers.findWorkspaceOrThrow('iamanonexistingid', dataMocks.workspaces)).toThrow('Workspace with id iamanonexistingid not found')
+    expect(() => helpers.findWorkspaceOrThrow('iamanonexistingid', dataMocks.workspaces))
+      .toThrow('Workspace with id iamanonexistingid not found')
   })
+})
+
+test('enhanceWorkspaceConfiguration', () => {
+  expect(helpers.enhanceWorkspaceConfiguration(dataMocks.workspaceJson, dataMocks.services))
+    .toEqual(dataMocks.enhancedWorkspaceJson)
 })

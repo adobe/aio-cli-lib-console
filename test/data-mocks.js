@@ -330,28 +330,51 @@ const enabledServices = [
   services[5]
 ]
 
+// built from services, fakes selection of some enabled entp services
+const serviceProperties = [
+  {
+    sdkCode: services[0].code,
+    name: services[0].name,
+    // keep all roles attached to service
+    roles: services[0].properties.roles,
+    licenseConfigs: [
+      services[0].properties.licenseConfigs[1]
+    ]
+  },
+  {
+    sdkCode: services[1].code,
+    name: services[1].name,
+    roles: services[1].properties.roles,
+    licenseConfigs: [
+      services[1].properties.licenseConfigs[0],
+      services[1].properties.licenseConfigs[1]
+    ]
+  },
+  { sdkCode: services[2].code, name: services[2].name, roles: null, licenseConfigs: null }
+]
+
 // response from getCredentials
 const integrations = [
   {
-    id: '111111',
+    id_integration: '111111',
     id_workspace: workspace.id,
     integration_type: 'other',
     flow_type: 'entp'
   },
   {
-    id: '111112',
+    id_integration: '111112',
     id_workspace: workspace.id,
     integration_type: 'service',
     flow_type: 'other'
   },
   {
-    id: '222222',
+    id_integration: '222222',
     id_workspace: workspace.id,
     integration_type: 'service',
     flow_type: 'entp'
   },
   {
-    id: '33333',
+    id_integration: '33333',
     id_workspace: workspace.id,
     integration_type: 'service',
     flow_type: 'entp'
@@ -373,43 +396,99 @@ const integration = {
   namespaceEnabled: false,
   technicalAccountId: 'some@techacct.adobe.com',
   technicalAccountEmail: 'some222222@techacct.adobe.com',
-  serviceProperties: [
-    {
-      sdkCode: services[0].code,
-      name: services[0].name,
-      roles: [
-        services[0].properties.roles[0]
-      ],
-      licenseConfigs: [
-        services[0].properties.licenseConfigs[1]
-      ]
-    },
-    {
-      sdkCode: services[1].code,
-      name: services[1].name,
-      roles: [
-        services[1].properties.roles[0],
-        services[1].properties.roles[1]
-      ],
-      licenseConfigs: [
-        services[1].properties.licenseConfigs[0],
-        services[1].properties.licenseConfigs[1]
-      ]
-    },
-    { sdkCode: services[2].code, name: services[2].name, roles: null, licenseConfigs: null }
-  ],
+  serviceProperties,
   readOnly: false,
   technicalAcctId: 'some@techacct.adobe.com',
   sdkList: [services[0].code, services[1].code, services[2].code]
 }
 
 const workspaceJson = {
-  // incomplete
+  // incomplete!
   project: {
     org: {
       id: org.id
     }
   }
+}
+
+const enhancedWorkspaceJson = {
+  // incomplete!
+  project: {
+    org: {
+      id: org.id,
+      details: {
+        services: enabledServices.map(s => ({ name: s.name, code: s.code, type: s.type }))
+      }
+    }
+  }
+}
+
+const integrationCreateResponse = {
+  id: integration.id,
+  apiKey: integration.apiKey,
+  orgId: integration.orgId,
+  technicalAccountId: integration.technicalAccountId
+}
+
+// payload based on serviceProperties
+const subscribeServicesPayload = [
+  {
+    licenseConfigs: [
+      { id: serviceProperties[0].licenseConfigs[0].id, op: 'add', productId: serviceProperties[0].licenseConfigs[0].productId }
+    ],
+    roles: serviceProperties[0].roles,
+    sdkCode: serviceProperties[0].sdkCode
+  },
+  {
+    licenseConfigs: [
+      { id: serviceProperties[1].licenseConfigs[0].id, op: 'add', productId: serviceProperties[1].licenseConfigs[0].productId },
+      { id: serviceProperties[1].licenseConfigs[1].id, op: 'add', productId: serviceProperties[1].licenseConfigs[1].productId }
+    ],
+    roles: serviceProperties[1].roles,
+    sdkCode: serviceProperties[1].sdkCode
+  },
+  {
+    licenseConfigs: null,
+    roles: null,
+    sdkCode: serviceProperties[2].sdkCode
+  }
+]
+
+const subscribeServicesResponse = {
+  sdkList: integration.sdkList
+}
+
+// expected prompt choices, based on data above and filters
+const promptChoices = {
+  orgs: [
+    { name: organizations[0].name, value: organizations[0] },
+    { name: organizations[2].name, value: organizations[2] }
+  ],
+  projects: [
+    { name: projects[4].title, value: projects[4] },
+    { name: projects[1].title, value: projects[1] }
+  ],
+  workspaces: [
+    { name: workspaces[0].name, value: workspaces[0] },
+    { name: workspaces[1].name, value: workspaces[1] },
+    { name: workspaces[2].name, value: workspaces[2] }
+  ],
+  licenseConfigs: [
+    [
+      { name: services[0].properties.licenseConfigs[0].name, value: services[0].properties.licenseConfigs[0] },
+      { name: services[0].properties.licenseConfigs[1].name, value: services[0].properties.licenseConfigs[1] }
+    ],
+    [
+      { name: services[1].properties.licenseConfigs[0].name, value: services[1].properties.licenseConfigs[0] },
+      { name: services[1].properties.licenseConfigs[1].name, value: services[1].properties.licenseConfigs[1] }
+    ]
+  ],
+  services: [
+    { name: services[0].name, value: services[0] },
+    { name: services[1].name, value: services[1] },
+    { name: services[2].name, value: services[2] },
+    { name: services[3].name, value: services[3] }
+  ]
 }
 
 module.exports = {
@@ -421,7 +500,13 @@ module.exports = {
   workspace,
   integrations,
   integration,
+  serviceProperties,
   services,
   workspaceJson,
-  enabledServices
+  enhancedWorkspaceJson,
+  enabledServices,
+  integrationCreateResponse,
+  subscribeServicesResponse,
+  subscribeServicesPayload,
+  promptChoices
 }

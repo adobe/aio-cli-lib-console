@@ -13,7 +13,7 @@ const Generator = require('yeoman-generator')
 const loggerNamespace = '@adobe/generator-aio-console'
 const logger = require('@adobe/aio-lib-core-logging')(loggerNamespace, { provider: 'debug', level: process.env.LOG_LEVEL || 'debug' })
 
-const ConsoleCLILib = require('../../lib/cli-console')
+const ConsoleCLILib = require('../../lib/console-cli')
 
 /*
   'initializing',
@@ -140,6 +140,7 @@ class ConsoleGenerator extends Generator {
       // 4. add services if workspace is new
       if (workspace.isNew || project.isNew) {
         // todo move this loop to lib ?
+        // todo 2 if is project.isNew prompt to add services to all workspaces
         while (true) {
           // if project is not new, allow to clone services from another workspace
           const operation = await this.consoleCLI.promptForAddServicesOperation(
