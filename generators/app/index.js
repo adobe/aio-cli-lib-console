@@ -13,7 +13,7 @@ const Generator = require('yeoman-generator')
 const loggerNamespace = '@adobe/generator-aio-console'
 const logger = require('@adobe/aio-lib-core-logging')(loggerNamespace, { provider: 'debug', level: process.env.LOG_LEVEL || 'debug' })
 
-const ConsoleCLILib = require('../../lib/console-cli')
+const LibConsoleCLI = require('../../lib/console-cli')
 
 /*
   'initializing',
@@ -84,7 +84,7 @@ class ConsoleGenerator extends Generator {
     this.preSelectedProjectId = this.preSelectedOrgId ? this.options[Option.PROJECT_ID] : undefined
     this.preSelectedWorkspaceId = this.preSelectedProjectId ? this.options[Option.WORKSPACE_ID] : undefined
 
-    this.consoleCLI = await ConsoleCLILib.init({ env, accessToken, apiKey }, {})
+    this.consoleCLI = await LibConsoleCLI.init({ env, accessToken, apiKey }, {})
   }
 
   async prompting () {
@@ -203,6 +203,7 @@ class ConsoleGenerator extends Generator {
       this.project = project
       this.workspace = workspace
     } catch (e) {
+      LibConsoleCLI.cleanStdOut()
       logger.error(e)
       throw e
     }
@@ -218,6 +219,7 @@ class ConsoleGenerator extends Generator {
       )
       this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
     } catch (e) {
+      LibConsoleCLI.cleanStdOut()
       logger.error(e)
       throw e
     }

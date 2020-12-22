@@ -145,6 +145,11 @@ test('init', async () => {
   )
 })
 
+test ('cleanStdOut', async () => {
+  LibConsoleCli.cleanStdOut()
+  expect(mockOraObject.stop).toHaveBeenCalled()
+})
+
 test('instance methods definitions', async () => {
   const consoleCli = await LibConsoleCli.init(consoleCredentials, {})
   // rd console api methods
