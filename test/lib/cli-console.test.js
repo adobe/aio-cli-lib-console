@@ -50,8 +50,8 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getServicesForOrg.mockResolvedValue({ body: dataMocks.services })
   mockConsoleSDKInstance.getProject.mockResolvedValue({ body: dataMocks.project })
   mockConsoleSDKInstance.getWorkspace.mockResolvedValue({ body: dataMocks.workspace })
-  mockConsoleSDKInstance.createProject.mockResolvedValue({ body: dataMocks.project })
-  mockConsoleSDKInstance.createWorkspace.mockResolvedValue({ body: dataMocks.workspace })
+  mockConsoleSDKInstance.createProject.mockResolvedValue({ body: { projectId: dataMocks.project.id } })
+  mockConsoleSDKInstance.createWorkspace.mockResolvedValue({ body: { workspaceId: dataMocks.workspace.id } })
   mockConsoleSDKInstance.downloadWorkspaceJson.mockResolvedValue({ body: dataMocks.workspaceJson })
   mockConsoleSDKInstance.createRuntimeNamespace.mockResolvedValue({ body: {} })
   mockConsoleSDKInstance.subscribeCredentialToServices.mockResolvedValue({ body: dataMocks.subscribeServicesResponse })
@@ -208,6 +208,56 @@ describe('instance methods tests', () => {
     expect(mockConsoleSDKInstance.getServicesForOrg).toHaveBeenCalledWith('orgid')
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('createProject', async () => {
+    // fresh project, mock workspaces to be only prod and stage
+    mockConsoleSDKInstance.getWorkspacesForProject.mockResolvedValue({
+      body: [
+        dataMocks.workspaces[0],
+        dataMocks.workspaces[1]
+      ]
+    })
+    // project details can be whatever, in the end the returned project is mocked from getProject
+    const project = await consoleCli.createProject(dataMocks.org.id, { name: 'name', title: 'title', description: 'description' })
+    expect(project).toEqual(dataMocks.project)
+    expect(mockConsoleSDKInstance.createProject).toHaveBeenCalledWith(
+      dataMocks.org.id,
+      { name: 'name', title: 'title', description: 'description', type: 'jaeger' }
+    )
+    // create additional needed resources
+    expect(mockConsoleSDKInstance.createWorkspace).toHaveBeenCalledWith(
+      dataMocks.org.id,
+      dataMocks.project.id,
+      { name: 'Stage' }
+    )
+    expect(mockConsoleSDKInstance.createRuntimeNamespace).toHaveBeenCalledTimes(2)
+    expect(mockConsoleSDKInstance.createRuntimeNamespace).toHaveBeenCalledWith(
+      dataMocks.org.id,
+      dataMocks.project.id,
+      dataMocks.workspaces[0].id
+    )
+    expect(mockConsoleSDKInstance.createRuntimeNamespace).toHaveBeenCalledWith(
+      dataMocks.org.id,
+      dataMocks.project.id,
+      dataMocks.workspaces[1].id
+    )
+  })
+
+  test('createWorkspace', async () => {
+    // workspace details can be whatever, in the end the returned workspace is mocked from getWorkspace
+    const workspace = await consoleCli.createWorkspace(dataMocks.org.id, dataMocks.project.id, { name: 'name', title: 'title' })
+    expect(workspace).toEqual(dataMocks.workspace)
+    expect(mockConsoleSDKInstance.createWorkspace).toHaveBeenCalledWith(
+      dataMocks.org.id,
+      dataMocks.project.id,
+      { name: 'name', title: 'title' }
+    )
+    expect(mockConsoleSDKInstance.createRuntimeNamespace).toHaveBeenCalledWith(
+      dataMocks.org.id,
+      dataMocks.project.id,
+      dataMocks.workspace.id
+    )
   })
 
   describe('addServicesToWorkspace', () => {
@@ -570,6 +620,90 @@ describe('instance methods tests', () => {
           { validate: validators.atLeastOne }
         )
       }
+    })
+  })
+
+  describe('confirmAddServicesToWorkspace', () => {
+    test('yes', async () => {
+      prompt.promptConfirm.mockResolvedValue(true)
+      const res = await consoleCli.confirmAddServicesToWorkspace('workspacename', dataMocks.serviceProperties)
+      expect(res).toBe(true)
+      expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
+      // make sure user sees a list of services and workspacename before confirming
+      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('workspacename'))
+      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining(JSON.stringify(dataMocks.serviceProperties.map(s => s.name), null, 4)))
+    })
+    test('no', async () => {
+      prompt.promptConfirm.mockResolvedValue(false)
+      const res = await consoleCli.confirmAddServicesToWorkspace('workspacename', dataMocks.serviceProperties)
+      expect(res).toBe(false)
+      expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('promptForAddServicesOperation', () => {
+    test('cloneChoice=false and nopChoice=false', async () => {
+      const res = await consoleCli.promptForAddServicesOperation('workspacename', { cloneChoice: false, nopChoice: false })
+      expect(res).toEqual('add')
+      expect(prompt.promptSelect).not.toHaveBeenCalled()
+    })
+    test('cloneChoice=false (by default) and nopChoice=false', async () => {
+      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: false })
+      expect(res).toEqual('add')
+      expect(prompt.promptSelect).not.toHaveBeenCalled()
+    })
+    test('nopChoice=true', async () => {
+      prompt.promptSelect.mockReturnValue('avalidchoice')
+      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: true })
+      expect(res).toEqual('avalidchoice')
+      expect(prompt.promptSelect).toHaveBeenCalledWith(
+        expect.stringContaining('workspacename'),
+        [
+          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'nop' })
+        ],
+        {}
+      )
+    })
+    test('nopChoice=true (by default)', async () => {
+      prompt.promptSelect.mockReturnValue('avalidchoice')
+      const res = await consoleCli.promptForAddServicesOperation('workspacename')
+      expect(res).toEqual('avalidchoice')
+      expect(prompt.promptSelect).toHaveBeenCalledWith(
+        expect.stringContaining('workspacename'),
+        [
+          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'nop' })
+        ],
+        {}
+      )
+    })
+    test('nopChoice=true cloneChoice=true', async () => {
+      prompt.promptSelect.mockReturnValue('avalidchoice')
+      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: true, cloneChoice: true })
+      expect(res).toEqual('avalidchoice')
+      expect(prompt.promptSelect).toHaveBeenCalledWith(
+        expect.stringContaining('workspacename'),
+        [
+          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'clone' }),
+          expect.objectContaining({ value: 'nop' })
+        ],
+        {}
+      )
+    })
+    test('nopChoice=false cloneChoice=true', async () => {
+      prompt.promptSelect.mockReturnValue('avalidchoice')
+      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: false, cloneChoice: true })
+      expect(res).toEqual('avalidchoice')
+      expect(prompt.promptSelect).toHaveBeenCalledWith(
+        expect.stringContaining('workspacename'),
+        [
+          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'clone' })
+        ],
+        {}
+      )
     })
   })
 })
