@@ -26,7 +26,6 @@ const ConsoleCLILib = require('../../lib/console-cli')
   'end'
 */
 
-// TODO move to constants
 const ApiKey = {
   prod: 'aio-cli-console-auth',
   stage: 'aio-cli-console-auth-stage'
@@ -45,7 +44,6 @@ const Option = {
   API_KEY: 'api-key',
   ENV: 'ims-env',
   ALLOW_CREATE: 'allow-create',
-  PROJECT_TYPE: 'project-type',
   ORG_ID: 'org-id',
   PROJECT_ID: 'project-id',
   WORKSPACE_ID: 'workspace-id',
@@ -73,10 +71,6 @@ class ConsoleGenerator extends Generator {
   }
 
   async initializing () {
-    this.env.adapter.promptModule.registerPrompt('autocomplete',
-      require('../../lib/inquirer-autocomplete-with-escape-prompt')
-    )
-
     const env = this.options[Option.ENV]
     const accessToken = this.options[Option.ACCESS_TOKEN]
     const apiKey = this.options[Option.API_KEY]
@@ -87,8 +81,8 @@ class ConsoleGenerator extends Generator {
     // hierarchy of ids:
     // project id is invalid if org id is not set, workspace id is not valid if project id is not set, etc
     this.preSelectedOrgId = this.options[Option.ORG_ID]
-    this.preSelectedProjectId = this.preSelectedOrgId ? this.options[Option.PROJECT_ID] : null
-    this.preSelectedWorkspaceId = this.preSelectedProjectId ? this.options[Option.WORKSPACE_ID] : null
+    this.preSelectedProjectId = this.preSelectedOrgId ? this.options[Option.PROJECT_ID] : undefined
+    this.preSelectedWorkspaceId = this.preSelectedProjectId ? this.options[Option.WORKSPACE_ID] : undefined
 
     this.consoleCLI = await ConsoleCLILib.init({ env, accessToken, apiKey }, {})
   }
@@ -139,12 +133,18 @@ class ConsoleGenerator extends Generator {
 
       // 4. add services if workspace is new
       if (workspace.isNew || project.isNew) {
-        // todo move this loop to lib ?
-        // todo 2 if is project.isNew prompt to add services to all workspaces
+        // Note: some or all of this loop should be moved to console-cli.js
         while (true) {
+          let addServicesTo = [workspace]
+          if (project.isNew) {
+            // add to all newly created workspaces, i.e Stage and Production if project.isNew
+            addServicesTo = workspaces
+          }
+          const addServicesToNames = addServicesTo.map(w => w.name)
+
           // if project is not new, allow to clone services from another workspace
           const operation = await this.consoleCLI.promptForAddServicesOperation(
-            workspace.name,
+            addServicesToNames,
             { cloneChoice: !project.isNew, nopChoice: true }
           )
 
@@ -156,8 +156,8 @@ class ConsoleGenerator extends Generator {
           let serviceProperties
 
           if (operation === 'add') {
-            serviceProperties = await this.consoleCLI.promptForServiceProperties(
-              workspace.name,
+            serviceProperties = await this.consoleCLI.promptForSelectServiceProperties(
+              addServicesToNames,
               supportedServices
             )
           }
@@ -165,16 +165,32 @@ class ConsoleGenerator extends Generator {
           if (operation === 'clone') {
             const workspaceFrom = await this.consoleCLI.promptForSelectWorkspace(
               workspaces,
-              { workspaceId: this.preSelectedWorkspaceId },
+              {},
               { allowCreate: false }
             )
-            serviceProperties = await this.consoleCLI.getServicePropertiesFromWorkspace(orgId, projectId, workspaceFrom, supportedServices)
+            serviceProperties = await this.consoleCLI.getServicePropertiesFromWorkspace(
+              orgId,
+              projectId,
+              workspaceFrom,
+              supportedServices
+            )
           }
 
-          const confirm = await this.consoleCLI.confirmAddServicesToWorkspace(workspace.name, serviceProperties)
+          const confirm = await this.consoleCLI.confirmAddServicesToWorkspace(
+            addServicesTo.map(w => w.name),
+            serviceProperties
+          )
           if (confirm) {
-            await this.consoleCLI.addServicesToWorkspace(orgId, project, workspace, this.certDir, serviceProperties)
-            // done
+            await Promise.all(addServicesTo.map(workspace =>
+              this.consoleCLI.addServicesToWorkspace(
+                orgId,
+                project,
+                workspace,
+                this.certDir,
+                serviceProperties
+              )
+            ))
+            // we are done
             break
           }
           // not confirm == restart loop
@@ -194,7 +210,12 @@ class ConsoleGenerator extends Generator {
 
   async writing () {
     try {
-      const json = await this.consoleCLI.getWorkspaceConfig(this.org.id, this.project.id, this.workspace.id, this.supportedServices)
+      const json = await this.consoleCLI.getWorkspaceConfig(
+        this.org.id,
+        this.project.id,
+        this.workspace.id,
+        this.supportedServices
+      )
       this.fs.writeJSON(this.destinationPath(this.options[Option.DESTINATION_FILE]), json)
     } catch (e) {
       logger.error(e)

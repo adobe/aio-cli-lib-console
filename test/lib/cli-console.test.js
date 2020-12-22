@@ -161,7 +161,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.createProject).toBe('function')
   expect(typeof consoleCli.createWorkspace).toBe('function')
   // prompt methods
-  expect(typeof consoleCli.promptForServiceProperties).toBe('function')
+  expect(typeof consoleCli.promptForSelectServiceProperties).toBe('function')
   expect(typeof consoleCli.promptForAddServicesOperation).toBe('function')
   expect(typeof consoleCli.promptForCreateProjectDetails).toBe('function')
   expect(typeof consoleCli.promptForCreateWorkspaceDetails).toBe('function')
@@ -597,29 +597,43 @@ describe('instance methods tests', () => {
       .toEqual(['Title', { validate: validators.validateWorkspaceTitle, default: '' }])
   })
 
-  test('promptForServiceProperties', async () => {
-    // selected services
-    const selectedServices = dataMocks.services.filter(s => dataMocks.integration.sdkList.includes(s.code))
-    prompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
-    // for each service select some licenseConfigs
-    dataMocks.integration.serviceProperties.forEach(s => {
-      prompt.promptMultiSelect.mockResolvedValueOnce(s.licenseConfigs)
-    })
+  describe('promptForSelectServiceProperties', () => {
+    test('select services', async () => {
+      // selected services
+      const selectedServices = dataMocks.services.filter(s => dataMocks.integration.sdkList.includes(s.code))
+      prompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
+      // for each service select some licenseConfigs
+      dataMocks.integration.serviceProperties.forEach(s => {
+        prompt.promptMultiSelect.mockResolvedValueOnce(s.licenseConfigs)
+      })
 
-    const res = await consoleCli.promptForServiceProperties(dataMocks.workspace.name, dataMocks.services)
-    expect(res).toEqual(dataMocks.integration.serviceProperties)
-    expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
-      `Add Services to Workspace ${dataMocks.workspace.name}`,
-      dataMocks.promptChoices.services
-    )
-    dataMocks.integration.serviceProperties.forEach((s, i) => {
-      if (s.licenseConfigs) {
-        expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
-          `Select Product Profiles for the service '${s.name}'`,
-          dataMocks.promptChoices.licenseConfigs[i],
-          { validate: validators.atLeastOne }
-        )
-      }
+      const res = await consoleCli.promptForSelectServiceProperties(dataMocks.workspace.name, dataMocks.services)
+      expect(res).toEqual(dataMocks.integration.serviceProperties)
+      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+        `Add Services to Workspace ${dataMocks.workspace.name}`,
+        dataMocks.promptChoices.services
+      )
+      dataMocks.integration.serviceProperties.forEach((s, i) => {
+        if (s.licenseConfigs) {
+          expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+            `Select Product Profiles for the service '${s.name}'`,
+            dataMocks.promptChoices.licenseConfigs[i],
+            { validate: validators.atLeastOne }
+          )
+        }
+      })
+    })
+    test('no selection + workspace name is an array', async () => {
+      // selected services
+      prompt.promptMultiSelect.mockResolvedValueOnce([])
+
+      const res = await consoleCli.promptForSelectServiceProperties(['wname1', 'wname2'], dataMocks.services)
+      expect(res).toEqual([])
+      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+        'Add Services to Workspaces wname1 and wname2',
+        dataMocks.promptChoices.services
+      )
+      expect(prompt.promptMultiSelect).toHaveBeenCalledTimes(1) // no licenseConfigs selections
     })
   })
 
@@ -630,7 +644,7 @@ describe('instance methods tests', () => {
       expect(res).toBe(true)
       expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
       // make sure user sees a list of services and workspacename before confirming
-      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('workspacename'))
+      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('Workspace workspacename'))
       expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining(JSON.stringify(dataMocks.serviceProperties.map(s => s.name), null, 4)))
     })
     test('no', async () => {
@@ -638,6 +652,12 @@ describe('instance methods tests', () => {
       const res = await consoleCli.confirmAddServicesToWorkspace('workspacename', dataMocks.serviceProperties)
       expect(res).toBe(false)
       expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
+    })
+    test('with array input', async () => {
+      prompt.promptConfirm.mockResolvedValue(true)
+      const res = await consoleCli.confirmAddServicesToWorkspace(['w1', 'w2'], dataMocks.serviceProperties)
+      expect(res).toBe(true)
+      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('Workspaces w1 and w2'))
     })
   })
 
@@ -701,6 +721,19 @@ describe('instance methods tests', () => {
         [
           expect.objectContaining({ value: 'add' }),
           expect.objectContaining({ value: 'clone' })
+        ],
+        {}
+      )
+    })
+    test('workspacename is array', async () => {
+      prompt.promptSelect.mockReturnValue('avalidchoice')
+      const res = await consoleCli.promptForAddServicesOperation(['wname1', 'wname2'])
+      expect(res).toEqual('avalidchoice')
+      expect(prompt.promptSelect).toHaveBeenCalledWith(
+        expect.stringContaining('Workspaces wname1 and wname2'),
+        [
+          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'nop' })
         ],
         {}
       )

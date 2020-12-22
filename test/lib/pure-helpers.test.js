@@ -28,6 +28,8 @@ test('exports', () => {
   expect(typeof helpers.findProjectOrThrow).toBe('function')
   expect(typeof helpers.findWorkspaceOrThrow).toBe('function')
   expect(typeof helpers.getAddServicesOperationPromptChoices).toBe('function')
+  expect(typeof helpers.enhanceWorkspaceConfiguration).toBe('function')
+  expect(typeof helpers.workspaceNamesToPromptString).toBe('function')
 })
 
 describe('orgsToPromptChoices', () => {
@@ -195,4 +197,19 @@ describe('findWorkspaceOrThrow', () => {
 test('enhanceWorkspaceConfiguration', () => {
   expect(helpers.enhanceWorkspaceConfiguration(dataMocks.workspaceJson, dataMocks.services))
     .toEqual(dataMocks.enhancedWorkspaceJson)
+})
+
+describe('workspaceNamesToPromptString', () => {
+  test('workspaceName is string', () => {
+    expect(helpers.workspaceNamesToPromptString('wname')).toEqual('Workspace wname')
+  })
+  test('workspaceName is array of 1', () => {
+    expect(helpers.workspaceNamesToPromptString(['wname'])).toEqual('Workspace wname')
+  })
+  test('workspaceName is array of 2', () => {
+    expect(helpers.workspaceNamesToPromptString(['wname', 'wname2'])).toEqual('Workspaces wname and wname2')
+  })
+  test('workspaceName is array of 3', () => {
+    expect(helpers.workspaceNamesToPromptString(['wname', 'wname2', 'wname3'])).toEqual('Workspaces wname, wname2 and wname3')
+  })
 })
