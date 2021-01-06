@@ -34,39 +34,11 @@ function createMockGenerator (returnValue) {
 
 test('exports', () => {
   const genPrompt = prompt({})
-  expect(typeof genPrompt.promptConfirm).toEqual('function')
-  expect(typeof genPrompt.promptCreation).toEqual('function')
   expect(typeof genPrompt.promptSelect).toEqual('function')
   expect(typeof genPrompt.promptSelectOrCreate).toEqual('function')
   expect(typeof genPrompt.promptInput).toEqual('function')
   expect(typeof genPrompt.promptMultiSelect).toEqual('function')
   expect(typeof genPrompt.createSourceForPromptSelect).toEqual('function')
-})
-
-test('promptConfirm', async () => {
-  const mockReturnValue = true
-  const mockGenerator = createMockGenerator(mockReturnValue)
-
-  const genPrompt = prompt(mockGenerator)
-  await expect(genPrompt.promptConfirm('what')).resolves.toEqual(mockReturnValue)
-})
-
-test('promptCreation', async () => {
-  let mockReturnValues, mockGenerator, genPrompt
-
-  // success, confirm true
-  mockReturnValues = ['newProject', true]
-  mockGenerator = createMockGenerator(mockReturnValues)
-
-  genPrompt = prompt(mockGenerator)
-  await expect(genPrompt.promptCreation('what')).resolves.toEqual(mockReturnValues[0])
-
-  // success, confirm false (else path)
-  mockReturnValues = ['newProject', false]
-  mockGenerator = createMockGenerator(mockReturnValues)
-
-  genPrompt = prompt(mockGenerator)
-  await expect(genPrompt.promptCreation('what')).resolves.toEqual(null)
 })
 
 test('promptSelect', async () => {
@@ -85,23 +57,20 @@ test('promptSelectOrCreate', async () => {
   genPrompt = prompt(mockGenerator)
   await expect(genPrompt.promptSelectOrCreate('what', [mockReturnValue, 'anotherProject'])).resolves.toEqual(mockReturnValue)
 
-  // coverage, data empty, nothing to select from (promptCreation)
-  mockReturnValue = ['newProject', true]
-  mockGenerator = createMockGenerator(mockReturnValue)
-  genPrompt = prompt(mockGenerator)
-  await expect(genPrompt.promptSelectOrCreate('what')).resolves.toEqual(mockReturnValue[0])
+  // data empty, nothing to select from (console.log and returns null for creation)
+  await expect(genPrompt.promptSelectOrCreate('what')).resolves.toEqual(null)
 
-  // coverage, selection not in data set, new item input by user
-  mockReturnValue = ['newProject', true]
-  mockGenerator = createMockGenerator(mockReturnValue)
-  genPrompt = prompt(mockGenerator)
-  await expect(genPrompt.promptSelectOrCreate('what', ['projectA', 'projectB'])).resolves.toEqual(mockReturnValue[0])
-
-  // coverage, selection not in data set, new item input by user. (else path, cancel confirmation)
-  mockReturnValue = ['newProject', false]
+  // ask for creation by user, no confirmation then confirm creation
+  mockReturnValue = ['+', false, '+', true]
   mockGenerator = createMockGenerator(mockReturnValue)
   genPrompt = prompt(mockGenerator)
   await expect(genPrompt.promptSelectOrCreate('what', ['projectA', 'projectB'])).resolves.toEqual(null)
+
+  // ask for creation by user, no confirmation then select existing project
+  mockReturnValue = ['+', false, 'existingProject']
+  mockGenerator = createMockGenerator(mockReturnValue)
+  genPrompt = prompt(mockGenerator)
+  await expect(genPrompt.promptSelectOrCreate('what', ['projectA', 'projectB'])).resolves.toEqual('existingProject')
 })
 
 test('promptInput', async () => {

@@ -13,7 +13,13 @@ const Generator = require('yeoman-generator')
 const consoleSdk = require('@adobe/aio-lib-console')
 const spinner = require('ora')()
 const prompt = require('../../lib/prompt')
-const { validateName, validateTitle } = require('../../lib/validate')
+const {
+  validateProjectName,
+  validateProjectTitle,
+  validateProjectDescription,
+  validateWorkspaceName,
+  validateWorkspaceTitle
+} = require('../../lib/validate')
 
 /*
   'initializing',
@@ -72,7 +78,7 @@ class ConsoleGenerator extends Generator {
 
   async initializing () {
     this.env.adapter.promptModule.registerPrompt('autocomplete',
-      require('inquirer-autocomplete-prompt')
+      require('../../lib/inquirer-autocomplete-with-escape-prompt')
     )
 
     const env = this.options[Option.ENV]
@@ -103,7 +109,7 @@ class ConsoleGenerator extends Generator {
 
     spinner.start()
 
-    spinner.text = 'Getting organizations...'
+    spinner.text = 'Getting Organizations...'
     const orgs = (await this.sdkClient.getOrganizations()).body
 
     spinner.stop()
@@ -128,11 +134,12 @@ class ConsoleGenerator extends Generator {
 
     spinner.start()
 
-    spinner.text = 'Getting projects...'
+    spinner.text = 'Getting Projects...'
     const projects = (await this.sdkClient.getProjectsForOrg(orgId)).body
     spinner.stop()
 
-    const projectsList = projects.map(item => item.title)
+    // show projects by title and reverse order to show latest first, note reverse is in place, let's make sure project is not modified
+    const projectsList = [...projects.map(item => item.title)].reverse()
     const promptFunc = this.allowCreate ? this.customPrompt.promptSelectOrCreate : this.customPrompt.promptSelect
     const projectResult = await promptFunc('Project', projectsList)
     let project = projects.find(item => item.title === projectResult)
@@ -140,23 +147,35 @@ class ConsoleGenerator extends Generator {
     if (!project) { // create new
       console.log('Enter Project details:')
       const name = await this.customPrompt.promptInput('Name', {
-        default: projectResult,
-        validate: validateName
+        validate: validateProjectName
       })
       const title = await this.customPrompt.promptInput('Title', {
-        default: projectResult,
-        validate: validateTitle
+        validate: validateProjectTitle
       })
-      const description = await this.customPrompt.promptInput('Description', { default: '' })
+      const description = await this.customPrompt.promptInput('Description', {
+        validate: validateProjectDescription,
+        default: ''
+      })
 
       spinner.start()
 
-      spinner.text = 'Creating project...'
+      // create the projectId
+      spinner.text = 'Creating Project...'
       const createdProject = (await this.sdkClient.createProject(orgId, { name, title, description, type: this.projectType })).body
+      const projectId = createdProject.projectId
+
+      // create the missing stage workspace
+      spinner.text = 'Creating Stage Workspace...'
+      await this.sdkClient.createWorkspace(orgId, projectId, { name: 'Stage' })
+
+      // enable runtime on the Production and Stage workspace
+      spinner.text = 'Enabling Adobe I/O Runtime...'
+      const workspaces = (await (this.sdkClient.getWorkspacesForProject(orgId, projectId))).body
+      await Promise.all(workspaces.map(w => this.sdkClient.createRuntimeNamespace(orgId, projectId, w.id)))
 
       // get complete record
-      spinner.text = 'Getting new project...'
-      project = (await this.sdkClient.getProject(orgId, createdProject.projectId)).body
+      spinner.text = 'Getting new Project...'
+      project = (await this.sdkClient.getProject(orgId, projectId)).body
 
       spinner.stop()
     }
@@ -178,7 +197,7 @@ class ConsoleGenerator extends Generator {
 
     spinner.start()
 
-    spinner.text = 'Getting workspaces...'
+    spinner.text = 'Getting Workspaces...'
     const workspaces = (await this.sdkClient.getWorkspacesForProject(orgId, projectId)).body
     spinner.stop()
 
@@ -190,20 +209,24 @@ class ConsoleGenerator extends Generator {
     if (!workspace) { // create new
       console.log('Enter Workspace details:')
       const name = await this.customPrompt.promptInput('Name', {
-        default: workspaceResult,
-        validate: validateName
+        validate: validateWorkspaceName
       })
       const title = await this.customPrompt.promptInput('Title', {
-        default: ''
+        default: '',
+        validate: validateWorkspaceTitle
       })
 
       spinner.start()
 
-      spinner.text = 'Creating workspace...'
+      spinner.text = 'Creating Workspace...'
       const createdWorkspace = (await this.sdkClient.createWorkspace(orgId, projectId, { name, title })).body
 
+      // enable runtime on the newly created workspace
+      spinner.text = 'Enabling Adobe I/O Runtime...'
+      await this.sdkClient.createRuntimeNamespace(orgId, projectId, createdWorkspace.workspaceId)
+
       // get complete record
-      spinner.text = 'Getting new workspace...'
+      spinner.text = 'Getting new Workspace...'
       workspace = (await this.sdkClient.getWorkspace(orgId, projectId, createdWorkspace.workspaceId)).body
 
       spinner.stop()
