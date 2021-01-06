@@ -66,6 +66,7 @@ jest.mock('../../lib/prompt.js')
 const prompt = require('../../lib/prompt')
 /** @private */
 function resetMockPrompt () {
+  prompt.promptChoice.mockReset()
   prompt.promptConfirm.mockReset()
   prompt.promptInput.mockReset()
   prompt.promptMultiSelect.mockReset()
@@ -670,18 +671,18 @@ describe('instance methods tests', () => {
     test('cloneChoice=false and nopChoice=false', async () => {
       const res = await consoleCli.promptForAddServicesOperation('workspacename', { cloneChoice: false, nopChoice: false })
       expect(res).toEqual('add')
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
+      expect(prompt.promptChoice).not.toHaveBeenCalled()
     })
     test('cloneChoice=false (by default) and nopChoice=false', async () => {
       const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: false })
       expect(res).toEqual('add')
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
+      expect(prompt.promptChoice).not.toHaveBeenCalled()
     })
     test('nopChoice=true', async () => {
-      prompt.promptSelect.mockReturnValue('avalidchoice')
+      prompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: true })
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptSelect).toHaveBeenCalledWith(
+      expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'add' }),
@@ -691,10 +692,10 @@ describe('instance methods tests', () => {
       )
     })
     test('nopChoice=true (by default)', async () => {
-      prompt.promptSelect.mockReturnValue('avalidchoice')
+      prompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForAddServicesOperation('workspacename')
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptSelect).toHaveBeenCalledWith(
+      expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'add' }),
@@ -704,10 +705,10 @@ describe('instance methods tests', () => {
       )
     })
     test('nopChoice=true cloneChoice=true', async () => {
-      prompt.promptSelect.mockReturnValue('avalidchoice')
+      prompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: true, cloneChoice: true })
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptSelect).toHaveBeenCalledWith(
+      expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'add' }),
@@ -718,10 +719,10 @@ describe('instance methods tests', () => {
       )
     })
     test('nopChoice=false cloneChoice=true', async () => {
-      prompt.promptSelect.mockReturnValue('avalidchoice')
+      prompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: false, cloneChoice: true })
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptSelect).toHaveBeenCalledWith(
+      expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'add' }),
@@ -731,10 +732,10 @@ describe('instance methods tests', () => {
       )
     })
     test('workspacename is array', async () => {
-      prompt.promptSelect.mockReturnValue('avalidchoice')
+      prompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForAddServicesOperation(['wname1', 'wname2'])
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptSelect).toHaveBeenCalledWith(
+      expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('Workspaces wname1 and wname2'),
         [
           expect.objectContaining({ value: 'add' }),

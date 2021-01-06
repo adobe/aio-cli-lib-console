@@ -13,6 +13,7 @@ jest.mock('../../lib/inquirer-autocomplete-with-escape-prompt', () => 'custom-pr
 jest.mock('inquirer')
 
 const inquirer = require('inquirer')
+const { mockPrompt } = require('yeoman-test')
 inquirer.prompt = jest.fn()
 inquirer.registerPrompt = jest.fn()
 
@@ -50,6 +51,14 @@ test('promptSelect', async () => {
   const mockReturnValue = 'choice'
   mockPromptInput(mockReturnValue)
   await expect(prompt.promptSelect('what', [mockReturnValue])).resolves.toEqual(mockReturnValue)
+  expect(inquirer.prompt).toHaveBeenCalledWith([expect.objectContaining({ message: 'Select what:' })])
+})
+
+test('promptChoice', async () => {
+  const mockReturnValue = 'choice'
+  mockPromptInput(mockReturnValue)
+  await expect(prompt.promptChoice('message', [mockReturnValue])).resolves.toEqual(mockReturnValue)
+  expect(inquirer.prompt).toHaveBeenCalledWith([expect.objectContaining({ message: 'message' })])
 })
 
 test('promptSelectOrCreate', async () => {
