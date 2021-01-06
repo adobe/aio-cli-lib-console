@@ -122,40 +122,40 @@ describe('getAddServicesOperationPromptChoices', () => {
   test('default', () => {
     expect(helpers.getAddServicesOperationPromptChoices()).toEqual(
       [
-        { name: 'Yes, select services to add', value: 'add' },
-        { name: 'No, do not add any new services', value: 'nop' }
+        { name: expect.any(String), value: 'add' },
+        { name: expect.any(String), value: 'nop' }
       ]
     )
   })
   test('cloneChoice=false, nopChoice = false', () => {
     expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: false, nopChoice: false })).toEqual(
       [
-        { name: 'Yes, select services to add', value: 'add' }
+        { name: expect.any(String), value: 'add' }
       ]
     )
   })
   test('cloneChoice=false, nopChoice = true', () => {
     expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: false, nopChoice: true })).toEqual(
       [
-        { name: 'Yes, select services to add', value: 'add' },
-        { name: 'No, do not add any new services', value: 'nop' }
+        { name: expect.any(String), value: 'add' },
+        { name: expect.any(String), value: 'nop' }
       ]
     )
   })
   test('cloneChoice=true, nopChoice = false', () => {
     expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: true, nopChoice: false })).toEqual(
       [
-        { name: 'Yes, select services to add', value: 'add' },
-        { name: 'Yes, clone services from another workspace in the project', value: 'clone' }
+        { name: expect.any(String), value: 'add' },
+        { name: expect.any(String), value: 'clone' }
       ]
     )
   })
   test('cloneChoice=true, nopChoice = true', () => {
     expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: true, nopChoice: true })).toEqual(
       [
-        { name: 'Yes, select services to add', value: 'add' },
-        { name: 'Yes, clone services from another workspace in the project', value: 'clone' },
-        { name: 'No, do not add any new services', value: 'nop' }
+        { name: expect.any(String), value: 'add' },
+        { name: expect.any(String), value: 'clone' },
+        { name: expect.any(String), value: 'nop' }
       ]
     )
   })
