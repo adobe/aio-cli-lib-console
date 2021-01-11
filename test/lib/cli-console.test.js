@@ -381,7 +381,9 @@ describe('instance methods tests', () => {
     test('some services attached to integration in workspace - test console workarounds', async () => {
       const allLicenseConfigs = dataMocks.serviceProperties
         .filter(sp => !!sp.licenseConfigs)
-        .flatMap(sp => sp.licenseConfigs)
+        .map(sp => sp.licenseConfigs)
+        // flatten the array
+        .reduce((flat, arr) => flat.concat(arr), [])
       const brokenServiceProperties = dataMocks.serviceProperties
         .map(sp => ({ ...sp, licenseConfigs: allLicenseConfigs }))
       mockConsoleSDKInstance.getIntegration.mockResolvedValue({ body: { serviceProperties: brokenServiceProperties } })
