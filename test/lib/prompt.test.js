@@ -68,7 +68,7 @@ test('promptSelectOrCreate', async () => {
   mockPromptInput(mockReturnValue)
   await expect(prompt.promptSelectOrCreate('what', [mockReturnValue, 'anotherProject'])).resolves.toEqual(mockReturnValue)
 
-  // data empty, nothing to select from (console.log and returns null for creation)
+  // data empty, nothing to select from (returns null for creation)
   await expect(prompt.promptSelectOrCreate('what')).resolves.toEqual(null)
 
   // ask for creation by user, no confirmation then confirm creation
