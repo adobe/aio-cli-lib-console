@@ -4,8 +4,7 @@ A Yeoman generator for bootstrapping an Adobe I/O Console Project.
 
 [![Version](https://img.shields.io/npm/v/@adobe/generator-aio-console.svg)](https://npmjs.org/package/@adobe/generator-aio-console)
 [![Downloads/week](https://img.shields.io/npm/dw/@adobe/generator-aio-console.svg)](https://npmjs.org/package/@adobe/generator-aio-console)
-[![Build Status](https://travis-ci.com/adobe/generator-aio-console.svg)](https://travis-ci.com/adobe/generator-aio-console)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+![Node.js CI](https://github.com/adobe/generator-aio-console/workflows/Node.js%20CI/badge.svg)[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/generator-aio-console/master.svg?style=flat-square)](https://codecov.io/gh/adobe/generator-aio-console/)
 
 
