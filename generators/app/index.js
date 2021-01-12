@@ -176,7 +176,7 @@ class ConsoleGenerator extends Generator {
             )
           }
 
-          const confirm = await this.consoleCLI.confirmAddServicesToWorkspace(
+          const confirm = await this.consoleCLI.confirmNewServiceSubscriptions(
             addServicesTo.map(w => w.name),
             serviceProperties
           )

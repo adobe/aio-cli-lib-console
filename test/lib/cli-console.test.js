@@ -174,7 +174,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.promptForSelectOrganization).toBe('function')
   expect(typeof consoleCli.promptForSelectProject).toBe('function')
   expect(typeof consoleCli.promptForSelectWorkspace).toBe('function')
-  expect(typeof consoleCli.confirmAddServicesToWorkspace).toBe('function')
+  expect(typeof consoleCli.confirmNewServiceSubscriptions).toBe('function')
 })
 
 describe('instance methods tests', () => {
@@ -645,10 +645,10 @@ describe('instance methods tests', () => {
     })
   })
 
-  describe('confirmAddServicesToWorkspace', () => {
+  describe('confirmNewServiceSubscriptions', () => {
     test('yes', async () => {
       prompt.promptConfirm.mockResolvedValue(true)
-      const res = await consoleCli.confirmAddServicesToWorkspace('workspacename', dataMocks.serviceProperties)
+      const res = await consoleCli.confirmNewServiceSubscriptions('workspacename', dataMocks.serviceProperties)
       expect(res).toBe(true)
       expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
       // make sure user sees a list of services and workspacename before confirming
@@ -657,13 +657,13 @@ describe('instance methods tests', () => {
     })
     test('no', async () => {
       prompt.promptConfirm.mockResolvedValue(false)
-      const res = await consoleCli.confirmAddServicesToWorkspace('workspacename', dataMocks.serviceProperties)
+      const res = await consoleCli.confirmNewServiceSubscriptions('workspacename', dataMocks.serviceProperties)
       expect(res).toBe(false)
       expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
     })
     test('with array input', async () => {
       prompt.promptConfirm.mockResolvedValue(true)
-      const res = await consoleCli.confirmAddServicesToWorkspace(['w1', 'w2'], dataMocks.serviceProperties)
+      const res = await consoleCli.confirmNewServiceSubscriptions(['w1', 'w2'], dataMocks.serviceProperties)
       expect(res).toBe(true)
       expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('Workspaces w1 and w2'))
     })

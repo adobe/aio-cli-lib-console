@@ -33,7 +33,7 @@ const mockConsoleCLIInstance = {
   promptForSelectServiceProperties: jest.fn(),
   addServicesToWorkspace: jest.fn(),
   getServicePropertiesFromWorkspace: jest.fn(),
-  confirmAddServicesToWorkspace: jest.fn(),
+  confirmNewServiceSubscriptions: jest.fn(),
   getFirstEntpCredentials: jest.fn(),
   getWorkspaceConfig: jest.fn(),
   promptForAddServicesOperation: jest.fn()
@@ -68,7 +68,7 @@ function setDefaultMockConsoleCLI () {
   // mock nop to not add services by default to avoid infinite loops
   mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('nop')
   // mock add service confirmation to true by default to avoid infinite loops
-  mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValue(true)
+  mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValue(true)
 }
 
 const theGeneratorPath = require.resolve('../../../generators/app')
@@ -290,8 +290,8 @@ describe('run', () => {
     // add services from prompt
     mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
     // confirm addition of services on second loop iteration (coverage)
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(true)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(true)
     // mock service selection
     mockConsoleCLIInstance.promptForSelectServiceProperties.mockResolvedValue(dataMocks.serviceProperties)
     await yeoman.run(theGeneratorPath).withOptions(genOptions)
@@ -341,7 +341,7 @@ describe('run', () => {
     // clone from
     mockConsoleCLIInstance.promptForSelectWorkspace.mockResolvedValueOnce({ id: 'fromid', name: 'fromname' })
     // confirm addition of services on first loop iteration
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(true)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(true)
     // mock service source
     mockConsoleCLIInstance.getServicePropertiesFromWorkspace.mockResolvedValue(dataMocks.serviceProperties)
     await yeoman.run(theGeneratorPath).withOptions(genOptions)
@@ -435,9 +435,9 @@ describe('run', () => {
     // add services from prompt
     mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
     // confirm addition of services on third loop iteration
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(true)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(true)
     // mock services to be added selection
     mockConsoleCLIInstance.promptForSelectServiceProperties.mockResolvedValue(dataMocks.serviceProperties)
     await yeoman.run(theGeneratorPath).withOptions(genOptions)
@@ -496,8 +496,8 @@ describe('run', () => {
     // add services from prompt
     mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
     // confirm addition of services on second loop iteration (coverage)
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
-    mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(true)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
+    mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(true)
     // mock services to be added selection
     mockConsoleCLIInstance.promptForSelectServiceProperties.mockResolvedValue(dataMocks.serviceProperties)
     await yeoman.run(theGeneratorPath).withOptions(genOptions)
