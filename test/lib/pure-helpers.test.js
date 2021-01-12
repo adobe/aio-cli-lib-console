@@ -95,7 +95,9 @@ describe('fixServiceProperties', () => {
   test('with serviceProperties that need fixing', () => {
     const allLicenseConfigs = dataMocks.serviceProperties
       .filter(sp => !!sp.licenseConfigs)
-      .flatMap(sp => sp.licenseConfigs)
+      .map(sp => sp.licenseConfigs)
+      // flatten the array
+      .reduce((flat, arr) => flat.concat(arr), [])
     const brokenServiceProperties = dataMocks.serviceProperties
       .map(sp => ({ ...sp, licenseConfigs: allLicenseConfigs }))
     expect(helpers.fixServiceProperties(brokenServiceProperties, dataMocks.services))
