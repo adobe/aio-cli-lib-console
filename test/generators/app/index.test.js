@@ -288,7 +288,7 @@ describe('run', () => {
     // workspace will be created
     mockConsoleCLIInstance.promptForSelectWorkspace.mockResolvedValue(null)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('add')
+    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
     // confirm addition of services on second loop iteration (coverage)
     mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
     mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(true)
@@ -433,7 +433,7 @@ describe('run', () => {
     mockConsoleCLIInstance.promptForSelectProject.mockResolvedValue(null)
     mockConsoleCLIInstance.createProject.mockResolvedValue(dataMocks.project)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('add')
+    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
     // confirm addition of services on third loop iteration
     mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
     mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
@@ -494,7 +494,7 @@ describe('run', () => {
     mockConsoleCLIInstance.promptForSelectProject.mockResolvedValue(null)
     mockConsoleCLIInstance.createProject.mockResolvedValue(dataMocks.project)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('add')
+    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
     // confirm addition of services on second loop iteration (coverage)
     mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(false)
     mockConsoleCLIInstance.confirmAddServicesToWorkspace.mockResolvedValueOnce(true)

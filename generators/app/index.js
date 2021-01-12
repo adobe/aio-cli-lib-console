@@ -155,7 +155,7 @@ class ConsoleGenerator extends Generator {
 
           let serviceProperties
 
-          if (operation === 'add') {
+          if (operation === 'select') {
             serviceProperties = await this.consoleCLI.promptForSelectServiceProperties(
               addServicesToNames,
               supportedServices

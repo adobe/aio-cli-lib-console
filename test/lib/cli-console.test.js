@@ -672,12 +672,12 @@ describe('instance methods tests', () => {
   describe('promptForAddServicesOperation', () => {
     test('cloneChoice=false and nopChoice=false', async () => {
       const res = await consoleCli.promptForAddServicesOperation('workspacename', { cloneChoice: false, nopChoice: false })
-      expect(res).toEqual('add')
+      expect(res).toEqual('select')
       expect(prompt.promptChoice).not.toHaveBeenCalled()
     })
     test('cloneChoice=false (by default) and nopChoice=false', async () => {
       const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: false })
-      expect(res).toEqual('add')
+      expect(res).toEqual('select')
       expect(prompt.promptChoice).not.toHaveBeenCalled()
     })
     test('nopChoice=true', async () => {
@@ -687,7 +687,7 @@ describe('instance methods tests', () => {
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
-          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'select' }),
           expect.objectContaining({ value: 'nop' })
         ],
         {}
@@ -700,7 +700,7 @@ describe('instance methods tests', () => {
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
-          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'select' }),
           expect.objectContaining({ value: 'nop' })
         ],
         {}
@@ -713,7 +713,7 @@ describe('instance methods tests', () => {
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
-          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'select' }),
           expect.objectContaining({ value: 'clone' }),
           expect.objectContaining({ value: 'nop' })
         ],
@@ -727,7 +727,7 @@ describe('instance methods tests', () => {
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
-          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'select' }),
           expect.objectContaining({ value: 'clone' })
         ],
         {}
@@ -740,7 +740,7 @@ describe('instance methods tests', () => {
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('Workspaces wname1 and wname2'),
         [
-          expect.objectContaining({ value: 'add' }),
+          expect.objectContaining({ value: 'select' }),
           expect.objectContaining({ value: 'nop' })
         ],
         {}
