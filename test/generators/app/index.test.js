@@ -31,12 +31,12 @@ const mockConsoleCLIInstance = {
   createWorkspace: jest.fn(),
   getEnabledServicesForOrg: jest.fn(),
   promptForSelectServiceProperties: jest.fn(),
-  addServicesToWorkspace: jest.fn(),
+  subscribeToServices: jest.fn(),
   getServicePropertiesFromWorkspace: jest.fn(),
   confirmNewServiceSubscriptions: jest.fn(),
   getFirstEntpCredentials: jest.fn(),
   getWorkspaceConfig: jest.fn(),
-  promptForAddServicesOperation: jest.fn()
+  promptForServiceSubscriptionsOperation: jest.fn()
 }
 LibConsoleCLI.init.mockResolvedValue(mockConsoleCLIInstance)
 /** @private */
@@ -61,12 +61,12 @@ function setDefaultMockConsoleCLI () {
   mockConsoleCLIInstance.promptForCreateWorkspaceDetails.mockResolvedValue({ title: 'title', name: 'name' })
   mockConsoleCLIInstance.getEnabledServicesForOrg.mockResolvedValue(dataMocks.enabledServices)
   mockConsoleCLIInstance.promptForSelectServiceProperties.mockResolvedValue(dataMocks.serviceProperties)
-  mockConsoleCLIInstance.addServicesToWorkspace.mockResolvedValue(dataMocks.subscribeServicesResponse)
+  mockConsoleCLIInstance.subscribeToServices.mockResolvedValue(dataMocks.subscribeServicesResponse)
   mockConsoleCLIInstance.getServicePropertiesFromWorkspace.mockResolvedValue(dataMocks.serviceProperties)
   mockConsoleCLIInstance.getFirstEntpCredentials.mockResolvedValue(dataMocks.integrations[2])
   mockConsoleCLIInstance.getWorkspaceConfig.mockResolvedValue(dataMocks.enhancedWorkspaceJson)
   // mock nop to not add services by default to avoid infinite loops
-  mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('nop')
+  mockConsoleCLIInstance.promptForServiceSubscriptionsOperation.mockResolvedValue('nop')
   // mock add service confirmation to true by default to avoid infinite loops
   mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValue(true)
 }
@@ -103,7 +103,7 @@ function expectNoCreateWorkspace () {
 }
 /** @private */
 function expectNoAddService () {
-  expect(mockConsoleCLIInstance.addServicesToWorkspace).not.toHaveBeenCalled()
+  expect(mockConsoleCLIInstance.subscribeToServices).not.toHaveBeenCalled()
   expect(mockConsoleCLIInstance.promptForSelectServiceProperties).not.toHaveBeenCalled()
   expect(mockConsoleCLIInstance.getServicePropertiesFromWorkspace).not.toHaveBeenCalled()
 }
@@ -256,7 +256,7 @@ describe('run', () => {
     // workspace will be created
     mockConsoleCLIInstance.promptForSelectWorkspace.mockResolvedValue(null)
     // don't add services to workspace
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('nop')
+    mockConsoleCLIInstance.promptForServiceSubscriptionsOperation.mockResolvedValue('nop')
 
     await yeoman.run(theGeneratorPath).withOptions(genOptions)
     // output file checks
@@ -277,7 +277,7 @@ describe('run', () => {
     )
 
     // service operation choices
-    expect(mockConsoleCLIInstance.promptForAddServicesOperation).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.promptForServiceSubscriptionsOperation).toHaveBeenCalledWith(
       [dataMocks.workspace.name],
       { cloneChoice: true, nopChoice: true }
     )
@@ -288,7 +288,7 @@ describe('run', () => {
     // workspace will be created
     mockConsoleCLIInstance.promptForSelectWorkspace.mockResolvedValue(null)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
+    mockConsoleCLIInstance.promptForServiceSubscriptionsOperation.mockResolvedValue('select')
     // confirm addition of services on second loop iteration (coverage)
     mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
     mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(true)
@@ -313,7 +313,7 @@ describe('run', () => {
     )
 
     // service operation choices
-    expect(mockConsoleCLIInstance.promptForAddServicesOperation).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.promptForServiceSubscriptionsOperation).toHaveBeenCalledWith(
       [dataMocks.workspace.name],
       { cloneChoice: true, nopChoice: true }
     )
@@ -323,7 +323,7 @@ describe('run', () => {
       [dataMocks.workspace.name],
       dataMocks.enabledServices
     )
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledWith(
       dataMocks.org.id,
       dataMocks.project,
       dataMocks.workspace,
@@ -337,7 +337,7 @@ describe('run', () => {
     // workspace will be created
     mockConsoleCLIInstance.promptForSelectWorkspace.mockResolvedValueOnce(null)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('clone')
+    mockConsoleCLIInstance.promptForServiceSubscriptionsOperation.mockResolvedValue('clone')
     // clone from
     mockConsoleCLIInstance.promptForSelectWorkspace.mockResolvedValueOnce({ id: 'fromid', name: 'fromname' })
     // confirm addition of services on first loop iteration
@@ -362,7 +362,7 @@ describe('run', () => {
       { title: 'title', name: 'name' } // res of promptForCreateWorkspaceDetails
     )
     // service operation choices
-    expect(mockConsoleCLIInstance.promptForAddServicesOperation).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.promptForServiceSubscriptionsOperation).toHaveBeenCalledWith(
       [dataMocks.workspace.name],
       { cloneChoice: true, nopChoice: true }
     )
@@ -380,7 +380,7 @@ describe('run', () => {
       { id: 'fromid', name: 'fromname' },
       dataMocks.enabledServices
     )
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledWith(
       dataMocks.org.id,
       dataMocks.project,
       dataMocks.workspace,
@@ -401,7 +401,7 @@ describe('run', () => {
     mockConsoleCLIInstance.promptForSelectProject.mockResolvedValue(null)
     mockConsoleCLIInstance.createProject.mockResolvedValue(dataMocks.project)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('nop')
+    mockConsoleCLIInstance.promptForServiceSubscriptionsOperation.mockResolvedValue('nop')
     await yeoman.run(theGeneratorPath).withOptions(genOptions)
 
     // output file checks
@@ -433,7 +433,7 @@ describe('run', () => {
     mockConsoleCLIInstance.promptForSelectProject.mockResolvedValue(null)
     mockConsoleCLIInstance.createProject.mockResolvedValue(dataMocks.project)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
+    mockConsoleCLIInstance.promptForServiceSubscriptionsOperation.mockResolvedValue('select')
     // confirm addition of services on third loop iteration
     mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
     mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
@@ -457,21 +457,21 @@ describe('run', () => {
       { title: 'title', name: 'name', description: 'description' } // res of promptForCreateProjectDetails
     )
     // service operation choices, + adds to all workspaces as project is new (prod and stage)
-    expect(mockConsoleCLIInstance.promptForAddServicesOperation).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.promptForServiceSubscriptionsOperation).toHaveBeenCalledWith(
       [prodWorkspace.name, stageWorkspace.name],
       { cloneChoice: false, nopChoice: true }
     )
     // services added checks
     /// services will be added to all workspaces in new project
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledTimes(2)
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledTimes(2)
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledWith(
       dataMocks.org.id,
       dataMocks.project,
       prodWorkspace,
       'certdir',
       dataMocks.serviceProperties
     )
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledWith(
       dataMocks.org.id,
       dataMocks.project,
       stageWorkspace,
@@ -494,7 +494,7 @@ describe('run', () => {
     mockConsoleCLIInstance.promptForSelectProject.mockResolvedValue(null)
     mockConsoleCLIInstance.createProject.mockResolvedValue(dataMocks.project)
     // add services from prompt
-    mockConsoleCLIInstance.promptForAddServicesOperation.mockResolvedValue('select')
+    mockConsoleCLIInstance.promptForServiceSubscriptionsOperation.mockResolvedValue('select')
     // confirm addition of services on second loop iteration (coverage)
     mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(false)
     mockConsoleCLIInstance.confirmNewServiceSubscriptions.mockResolvedValueOnce(true)
@@ -522,28 +522,28 @@ describe('run', () => {
       { title: 'title', name: 'name' } // res of promptForCreateWorkspaceDetails
     )
     // service operation choices, + adds to all workspaces as project is new (prod and stage and created)
-    expect(mockConsoleCLIInstance.promptForAddServicesOperation).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.promptForServiceSubscriptionsOperation).toHaveBeenCalledWith(
       [prodWorkspace.name, stageWorkspace.name, createdWorkspace.name],
       { cloneChoice: false, nopChoice: true }
     )
     // services added checks
     /// services will be added to all workspaces in new project
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledTimes(3)
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledTimes(3)
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledWith(
       dataMocks.org.id,
       dataMocks.project,
       createdWorkspace,
       'certdir',
       dataMocks.serviceProperties
     )
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledWith(
       dataMocks.org.id,
       dataMocks.project,
       prodWorkspace,
       'certdir',
       dataMocks.serviceProperties
     )
-    expect(mockConsoleCLIInstance.addServicesToWorkspace).toHaveBeenCalledWith(
+    expect(mockConsoleCLIInstance.subscribeToServices).toHaveBeenCalledWith(
       dataMocks.org.id,
       dataMocks.project,
       stageWorkspace,

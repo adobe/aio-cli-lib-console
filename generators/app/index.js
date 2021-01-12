@@ -143,7 +143,7 @@ class ConsoleGenerator extends Generator {
           const addServicesToNames = addServicesTo.map(w => w.name)
 
           // if project is not new, allow to clone services from another workspace
-          const operation = await this.consoleCLI.promptForAddServicesOperation(
+          const operation = await this.consoleCLI.promptForServiceSubscriptionsOperation(
             addServicesToNames,
             { cloneChoice: !project.isNew, nopChoice: true }
           )
@@ -182,7 +182,7 @@ class ConsoleGenerator extends Generator {
           )
           if (confirm) {
             await Promise.all(addServicesTo.map(workspace =>
-              this.consoleCLI.addServicesToWorkspace(
+              this.consoleCLI.subscribeToServices(
                 orgId,
                 project,
                 workspace,

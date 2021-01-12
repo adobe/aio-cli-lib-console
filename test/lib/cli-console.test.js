@@ -162,13 +162,13 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getServicePropertiesFromWorkspace).toBe('function')
   expect(typeof consoleCli.getWorkspaceConfig).toBe('function')
   // wr console api methods
-  expect(typeof consoleCli.addServicesToWorkspace).toBe('function')
+  expect(typeof consoleCli.subscribeToServices).toBe('function')
   expect(typeof consoleCli.createEnterpriseCredentials).toBe('function')
   expect(typeof consoleCli.createProject).toBe('function')
   expect(typeof consoleCli.createWorkspace).toBe('function')
   // prompt methods
   expect(typeof consoleCli.promptForSelectServiceProperties).toBe('function')
-  expect(typeof consoleCli.promptForAddServicesOperation).toBe('function')
+  expect(typeof consoleCli.promptForServiceSubscriptionsOperation).toBe('function')
   expect(typeof consoleCli.promptForCreateProjectDetails).toBe('function')
   expect(typeof consoleCli.promptForCreateWorkspaceDetails).toBe('function')
   expect(typeof consoleCli.promptForSelectOrganization).toBe('function')
@@ -266,9 +266,9 @@ describe('instance methods tests', () => {
     )
   })
 
-  describe('addServicesToWorkspace', () => {
+  describe('subscribeToServices', () => {
     test('no services to be added', async () => {
-      const ret = await consoleCli.addServicesToWorkspace(
+      const ret = await consoleCli.subscribeToServices(
         dataMocks.org.id,
         dataMocks.project,
         dataMocks.workspace,
@@ -282,7 +282,7 @@ describe('instance methods tests', () => {
     })
     test('services to be added and no integration to be created', async () => {
       // default mock of getCredentials returns the existing integration
-      const ret = await consoleCli.addServicesToWorkspace(
+      const ret = await consoleCli.subscribeToServices(
         dataMocks.org.id,
         dataMocks.project,
         dataMocks.workspace,
@@ -307,7 +307,7 @@ describe('instance methods tests', () => {
     })
     test('services to be added and integration to be created', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
-      const ret = await consoleCli.addServicesToWorkspace(
+      const ret = await consoleCli.subscribeToServices(
         dataMocks.org.id,
         dataMocks.project,
         dataMocks.workspace,
@@ -669,20 +669,20 @@ describe('instance methods tests', () => {
     })
   })
 
-  describe('promptForAddServicesOperation', () => {
+  describe('promptForServiceSubscriptionsOperation', () => {
     test('cloneChoice=false and nopChoice=false', async () => {
-      const res = await consoleCli.promptForAddServicesOperation('workspacename', { cloneChoice: false, nopChoice: false })
+      const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { cloneChoice: false, nopChoice: false })
       expect(res).toEqual('select')
       expect(prompt.promptChoice).not.toHaveBeenCalled()
     })
     test('cloneChoice=false (by default) and nopChoice=false', async () => {
-      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: false })
+      const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: false })
       expect(res).toEqual('select')
       expect(prompt.promptChoice).not.toHaveBeenCalled()
     })
     test('nopChoice=true', async () => {
       prompt.promptChoice.mockReturnValue('avalidchoice')
-      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: true })
+      const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: true })
       expect(res).toEqual('avalidchoice')
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
@@ -695,7 +695,7 @@ describe('instance methods tests', () => {
     })
     test('nopChoice=true (by default)', async () => {
       prompt.promptChoice.mockReturnValue('avalidchoice')
-      const res = await consoleCli.promptForAddServicesOperation('workspacename')
+      const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename')
       expect(res).toEqual('avalidchoice')
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
@@ -708,7 +708,7 @@ describe('instance methods tests', () => {
     })
     test('nopChoice=true cloneChoice=true', async () => {
       prompt.promptChoice.mockReturnValue('avalidchoice')
-      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: true, cloneChoice: true })
+      const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: true, cloneChoice: true })
       expect(res).toEqual('avalidchoice')
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
@@ -722,7 +722,7 @@ describe('instance methods tests', () => {
     })
     test('nopChoice=false cloneChoice=true', async () => {
       prompt.promptChoice.mockReturnValue('avalidchoice')
-      const res = await consoleCli.promptForAddServicesOperation('workspacename', { nopChoice: false, cloneChoice: true })
+      const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: false, cloneChoice: true })
       expect(res).toEqual('avalidchoice')
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
@@ -735,7 +735,7 @@ describe('instance methods tests', () => {
     })
     test('workspacename is array', async () => {
       prompt.promptChoice.mockReturnValue('avalidchoice')
-      const res = await consoleCli.promptForAddServicesOperation(['wname1', 'wname2'])
+      const res = await consoleCli.promptForServiceSubscriptionsOperation(['wname1', 'wname2'])
       expect(res).toEqual('avalidchoice')
       expect(prompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('Workspaces wname1 and wname2'),

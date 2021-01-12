@@ -27,7 +27,7 @@ test('exports', () => {
   expect(typeof helpers.findOrgOrThrow).toBe('function')
   expect(typeof helpers.findProjectOrThrow).toBe('function')
   expect(typeof helpers.findWorkspaceOrThrow).toBe('function')
-  expect(typeof helpers.getAddServicesOperationPromptChoices).toBe('function')
+  expect(typeof helpers.getServiceSubscriptionsOperationPromptChoices).toBe('function')
   expect(typeof helpers.enhanceWorkspaceConfiguration).toBe('function')
   expect(typeof helpers.workspaceNamesToPromptString).toBe('function')
 })
@@ -120,9 +120,9 @@ test('getCertFilesLocation', () => {
   })
 })
 
-describe('getAddServicesOperationPromptChoices', () => {
+describe('getServiceSubscriptionsOperationPromptChoices', () => {
   test('default', () => {
-    expect(helpers.getAddServicesOperationPromptChoices()).toEqual(
+    expect(helpers.getServiceSubscriptionsOperationPromptChoices()).toEqual(
       [
         { name: expect.any(String), value: 'select' },
         { name: expect.any(String), value: 'nop' }
@@ -130,14 +130,14 @@ describe('getAddServicesOperationPromptChoices', () => {
     )
   })
   test('cloneChoice=false, nopChoice = false', () => {
-    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: false, nopChoice: false })).toEqual(
+    expect(helpers.getServiceSubscriptionsOperationPromptChoices({ cloneChoice: false, nopChoice: false })).toEqual(
       [
         { name: expect.any(String), value: 'select' }
       ]
     )
   })
   test('cloneChoice=false, nopChoice = true', () => {
-    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: false, nopChoice: true })).toEqual(
+    expect(helpers.getServiceSubscriptionsOperationPromptChoices({ cloneChoice: false, nopChoice: true })).toEqual(
       [
         { name: expect.any(String), value: 'select' },
         { name: expect.any(String), value: 'nop' }
@@ -145,7 +145,7 @@ describe('getAddServicesOperationPromptChoices', () => {
     )
   })
   test('cloneChoice=true, nopChoice = false', () => {
-    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: true, nopChoice: false })).toEqual(
+    expect(helpers.getServiceSubscriptionsOperationPromptChoices({ cloneChoice: true, nopChoice: false })).toEqual(
       [
         { name: expect.any(String), value: 'select' },
         { name: expect.any(String), value: 'clone' }
@@ -153,7 +153,7 @@ describe('getAddServicesOperationPromptChoices', () => {
     )
   })
   test('cloneChoice=true, nopChoice = true', () => {
-    expect(helpers.getAddServicesOperationPromptChoices({ cloneChoice: true, nopChoice: true })).toEqual(
+    expect(helpers.getServiceSubscriptionsOperationPromptChoices({ cloneChoice: true, nopChoice: true })).toEqual(
       [
         { name: expect.any(String), value: 'select' },
         { name: expect.any(String), value: 'clone' },
