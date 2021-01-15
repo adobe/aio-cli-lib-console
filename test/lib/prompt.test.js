@@ -13,25 +13,25 @@ jest.mock('../../lib/inquirer-autocomplete-with-escape-prompt', () => 'custom-pr
 jest.mock('inquirer')
 
 const inquirer = require('inquirer')
-const { mockPrompt } = require('yeoman-test')
-inquirer.prompt = jest.fn()
+const mockPrompt = jest.fn()
+inquirer.createPromptModule = jest.fn().mockReturnValue(mockPrompt)
 inquirer.registerPrompt = jest.fn()
 
 // after global mocks
 const prompt = require('../../lib/prompt')
 
 beforeEach(() => {
-  inquirer.prompt.mockReset()
+  mockPrompt.mockReset()
 })
 
 /** @private */
 function mockPromptInput (input) {
-  inquirer.prompt.mockReset()
+  mockPrompt.mockReset()
   if (!Array.isArray(input)) {
     input = [input]
   }
   input.forEach(i => {
-    inquirer.prompt.mockResolvedValueOnce({ res: i })
+    mockPrompt.mockResolvedValueOnce({ res: i })
   })
 }
 
@@ -51,14 +51,14 @@ test('promptSelect', async () => {
   const mockReturnValue = 'choice'
   mockPromptInput(mockReturnValue)
   await expect(prompt.promptSelect('what', [mockReturnValue])).resolves.toEqual(mockReturnValue)
-  expect(inquirer.prompt).toHaveBeenCalledWith([expect.objectContaining({ message: 'Select what:' })])
+  expect(mockPrompt).toHaveBeenCalledWith([expect.objectContaining({ message: 'Select what:' })])
 })
 
 test('promptChoice', async () => {
   const mockReturnValue = 'choice'
   mockPromptInput(mockReturnValue)
   await expect(prompt.promptChoice('message', [mockReturnValue])).resolves.toEqual(mockReturnValue)
-  expect(inquirer.prompt).toHaveBeenCalledWith([expect.objectContaining({ message: 'message' })])
+  expect(mockPrompt).toHaveBeenCalledWith([expect.objectContaining({ message: 'message' })])
 })
 
 test('promptSelectOrCreate', async () => {
@@ -74,7 +74,7 @@ test('promptSelectOrCreate', async () => {
   // ask for creation by user, no confirmation then confirm creation
   mockReturnValue = ['+', false, '+', true]
   mockPromptInput(mockReturnValue)
-  inquirer.prompt.mockReturnValue({ res: mockReturnValue })
+  mockPrompt.mockReturnValue({ res: mockReturnValue })
   await expect(prompt.promptSelectOrCreate('what', ['projectA', 'projectB'])).resolves.toEqual(null)
 
   // ask for creation by user, no confirmation then select existing project
