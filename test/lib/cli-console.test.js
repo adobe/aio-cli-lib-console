@@ -619,7 +619,8 @@ describe('instance methods tests', () => {
       expect(res).toEqual(dataMocks.integration.serviceProperties)
       expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
         `Add Services to Workspace ${dataMocks.workspace.name}`,
-        dataMocks.promptChoices.services
+        dataMocks.promptChoices.services,
+        { validate: validators.atLeastOne }
       )
       dataMocks.integration.serviceProperties.forEach((s, i) => {
         if (s.licenseConfigs) {
@@ -639,7 +640,8 @@ describe('instance methods tests', () => {
       expect(res).toEqual([])
       expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
         'Add Services to Workspaces wname1 and wname2',
-        dataMocks.promptChoices.services
+        dataMocks.promptChoices.services,
+        { validate: validators.atLeastOne }
       )
       expect(prompt.promptMultiSelect).toHaveBeenCalledTimes(1) // no licenseConfigs selections
     })
