@@ -169,6 +169,7 @@ test('instance methods definitions', async () => {
   // prompt methods
   expect(typeof consoleCli.promptForSelectServiceProperties).toBe('function')
   expect(typeof consoleCli.promptForServiceSubscriptionsOperation).toBe('function')
+  expect(typeof consoleCli.promptForRemoveServiceSubscriptions).toBe('function')
   expect(typeof consoleCli.promptForCreateProjectDetails).toBe('function')
   expect(typeof consoleCli.promptForCreateWorkspaceDetails).toBe('function')
   expect(typeof consoleCli.promptForSelectOrganization).toBe('function')
@@ -746,6 +747,38 @@ describe('instance methods tests', () => {
           expect.objectContaining({ value: 'nop' })
         ],
         {}
+      )
+    })
+  })
+  describe('promptForRemoveServiceSubscriptions', () => {
+    test('select some services to delete', async () => {
+      const initialList = dataMocks.serviceProperties
+      // selected services
+      const selectedServices = [initialList[1]]
+      prompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
+      // expected result
+      const expectedResult = [initialList[0], ...initialList.slice(2)]
+
+      const res = await consoleCli.promptForRemoveServiceSubscriptions(dataMocks.workspace.name, initialList)
+      expect(res).toEqual(expectedResult)
+      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+        `Delete Services from Workspace ${dataMocks.workspace.name}`,
+        // to choice
+        initialList.map(s => ({ name: s.name, value: s }))
+      )
+    })
+    test('no selection + workspace name is an array', async () => {
+      const initialList = dataMocks.serviceProperties
+      // selected services
+      const selectedServices = []
+      prompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
+
+      const res = await consoleCli.promptForRemoveServiceSubscriptions([dataMocks.workspace.name, 'workspace2'], initialList)
+      expect(res).toEqual(null)
+      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+        `Delete Services from Workspaces ${dataMocks.workspace.name} and workspace2`,
+        // to choice
+        initialList.map(s => ({ name: s.name, value: s }))
       )
     })
   })
