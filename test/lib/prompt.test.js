@@ -15,7 +15,7 @@ jest.mock('inquirer')
 const inquirer = require('inquirer')
 const mockPrompt = jest.fn()
 inquirer.createPromptModule = jest.fn().mockReturnValue(mockPrompt)
-inquirer.registerPrompt = jest.fn()
+mockPrompt.registerPrompt = jest.fn()
 
 // after global mocks
 const prompt = require('../../lib/prompt')
@@ -44,7 +44,7 @@ test('exports', () => {
 })
 
 test('register custom auto complete prompt on require', () => {
-  expect(inquirer.registerPrompt).toHaveBeenCalledWith('autocomplete-with-escape', 'custom-prompt')
+  expect(mockPrompt.registerPrompt).toHaveBeenCalledWith('autocomplete-with-escape', 'custom-prompt')
 })
 
 test('promptSelect', async () => {
