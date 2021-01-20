@@ -135,16 +135,16 @@ class ConsoleGenerator extends Generator {
       if (workspace.isNew || project.isNew) {
         // Note: some or all of this loop should be moved to console-cli.js
         while (true) {
-          let addServicesTo = [workspace]
+          let workspacesToAddServicesTo = [workspace]
           if (project.isNew) {
-            // add to all newly created workspaces, i.e Stage and Production if project.isNew
-            addServicesTo = workspaces
+            // add to all newly created workspaces, i.e Stage and Production + new created Workspace if project.isNew
+            workspacesToAddServicesTo = workspace.isNew ? workspaces.concat(workspace) : workspaces
           }
-          const addServicesToNames = addServicesTo.map(w => w.name)
+          const workspaceNamesToAddServicesTo = workspacesToAddServicesTo.map(w => w.name)
 
           // if project is not new, allow to clone services from another workspace
           const operation = await this.consoleCLI.promptForServiceSubscriptionsOperation(
-            addServicesToNames,
+            workspaceNamesToAddServicesTo,
             { cloneChoice: !project.isNew, nopChoice: true }
           )
 
@@ -157,7 +157,7 @@ class ConsoleGenerator extends Generator {
 
           if (operation === 'select') {
             serviceProperties = await this.consoleCLI.promptForSelectServiceProperties(
-              addServicesToNames,
+              workspaceNamesToAddServicesTo,
               supportedServices
             )
           }
@@ -177,11 +177,11 @@ class ConsoleGenerator extends Generator {
           }
 
           const confirm = await this.consoleCLI.confirmNewServiceSubscriptions(
-            addServicesTo.map(w => w.name),
+            workspaceNamesToAddServicesTo,
             serviceProperties
           )
           if (confirm) {
-            await Promise.all(addServicesTo.map(workspace =>
+            await Promise.all(workspacesToAddServicesTo.map(workspace =>
               this.consoleCLI.subscribeToServices(
                 orgId,
                 project,

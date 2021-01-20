@@ -485,8 +485,8 @@ describe('run', () => {
     const prodWorkspace = dataMocks.workspaces[0]
     const stageWorkspace = dataMocks.workspaces[1]
     const createdWorkspace = dataMocks.workspace
-    // mock workspaces (prod/stage/created)
-    mockConsoleCLIInstance.getWorkspaces.mockResolvedValue([prodWorkspace, stageWorkspace, createdWorkspace])
+    // mock workspaces (prod/stage), new wkspce is not created at this stage
+    mockConsoleCLIInstance.getWorkspaces.mockResolvedValue([prodWorkspace, stageWorkspace])
     // workspace will be created
     mockConsoleCLIInstance.promptForSelectWorkspace.mockResolvedValue(null)
     mockConsoleCLIInstance.createWorkspace.mockResolvedValue(createdWorkspace)
