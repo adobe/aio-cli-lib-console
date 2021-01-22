@@ -33,6 +33,7 @@ const ApiKey = {
 
 const Default = {
   DESTINATION_FILE: 'console.json',
+  CERT_DIR: 'entp-certs',
   API_KEY: ApiKey,
   ENV: 'prod',
   ALLOW_CREATE: false
@@ -40,7 +41,7 @@ const Default = {
 
 const Option = {
   DESTINATION_FILE: 'destination-file',
-  ACCESS_TOKEN: 'access-token',
+  ACCESS_TOKEN: 'access-token', // required !
   API_KEY: 'api-key',
   ENV: 'ims-env',
   ALLOW_CREATE: 'allow-create',
@@ -48,7 +49,7 @@ const Option = {
   PROJECT_ID: 'project-id',
   WORKSPACE_ID: 'workspace-id',
   // path to the base directory to store generated certificates for new Workspace integrations
-  CERT_DIR: 'cert-dir'
+  CERT_DIR: 'cert-dir' // required !
 }
 
 class ConsoleGenerator extends Generator {
@@ -56,21 +57,28 @@ class ConsoleGenerator extends Generator {
     super(args, opts)
 
     // options are inputs from CLI or yeoman parent generator
-    this.option(Option.DESTINATION_FILE, { type: String, default: Default.DESTINATION_FILE })
+
+    // required
+    this.option(Option.CERT_DIR, { type: String })
     this.option(Option.ACCESS_TOKEN, { type: String })
+
+    // optional
+    this.option(Option.DESTINATION_FILE, { type: String, default: Default.DESTINATION_FILE })
     this.option(Option.ENV, { type: String, default: Default.ENV })
     this.option(Option.ALLOW_CREATE, { type: Boolean, default: Default.ALLOW_CREATE })
-
     this.option(Option.ORG_ID, { type: String })
     this.option(Option.PROJECT_ID, { type: String })
     this.option(Option.WORKSPACE_ID, { type: String })
-    this.option(Option.CERT_DIR, { type: String })
 
     const env = this.options[Option.ENV]
     this.option(Option.API_KEY, { type: String, default: Default.API_KEY[env] })
   }
 
   async initializing () {
+    if (!this.options[Option.CERT_DIR] || !this.options[Option.ACCESS_TOKEN]) {
+      throw new Error(`Missing one or more required inputs: ${Option.CERT_DIR}, ${Option.ACCESS_TOKEN}`)
+    }
+
     const env = this.options[Option.ENV]
     const accessToken = this.options[Option.ACCESS_TOKEN]
     const apiKey = this.options[Option.API_KEY]

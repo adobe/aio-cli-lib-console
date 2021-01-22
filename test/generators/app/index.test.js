@@ -109,6 +109,20 @@ function expectNoAddService () {
 }
 
 describe('run', () => {
+  test('missing input: cert-dir', async () => {
+    await expect(yeoman
+      .run(theGeneratorPath)
+      .withOptions({ ...genOptions, 'cert-dir': undefined })
+    ).rejects.toThrow('Missing one or more required inputs')
+  })
+
+  test('missing input: access-token', async () => {
+    await expect(yeoman
+      .run(theGeneratorPath)
+      .withOptions({ ...genOptions, 'cert-dir': undefined })
+    ).rejects.toThrow('Missing one or more required inputs')
+  })
+
   test('test initialization params for console-cli - access-token', async () => {
     await yeoman.run(theGeneratorPath).withOptions(genOptions)
     expect(LibConsoleCLI.init).toHaveBeenCalledWith({
