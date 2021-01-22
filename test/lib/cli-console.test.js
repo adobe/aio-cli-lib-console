@@ -62,16 +62,23 @@ function setDefaultMockConsoleSdk () {
 }
 
 // mock prompts
-jest.mock('../../lib/prompt.js')
-const prompt = require('../../lib/prompt')
+const mockPrompt = {
+  promptChoice: jest.fn(),
+  promptConfirm: jest.fn(),
+  promptInput: jest.fn(),
+  promptMultiSelect: jest.fn(),
+  promptSelect: jest.fn(),
+  promptSelectOrCreate: jest.fn()
+}
+jest.mock('../../lib/prompt.js', () => () => mockPrompt)
 /** @private */
 function resetMockPrompt () {
-  prompt.promptChoice.mockReset()
-  prompt.promptConfirm.mockReset()
-  prompt.promptInput.mockReset()
-  prompt.promptMultiSelect.mockReset()
-  prompt.promptSelect.mockReset()
-  prompt.promptSelectOrCreate.mockReset()
+  mockPrompt.promptChoice.mockReset()
+  mockPrompt.promptConfirm.mockReset()
+  mockPrompt.promptInput.mockReset()
+  mockPrompt.promptMultiSelect.mockReset()
+  mockPrompt.promptSelect.mockReset()
+  mockPrompt.promptSelectOrCreate.mockReset()
 }
 
 // ora mocks setup before requiring  LibConsoleCli
@@ -146,7 +153,7 @@ test('init', async () => {
   )
 })
 
-test ('cleanStdOut', async () => {
+test('cleanStdOut', async () => {
   LibConsoleCli.cleanStdOut()
   expect(mockOraObject.stop).toHaveBeenCalled()
 })
@@ -488,121 +495,121 @@ describe('instance methods tests', () => {
 
   describe('promptForSelectOrganization', () => {
     test('prompts with list of orgs', async () => {
-      prompt.promptSelect.mockResolvedValue(dataMocks.org)
+      mockPrompt.promptSelect.mockResolvedValue(dataMocks.org)
       const res = await consoleCli.promptForSelectOrganization(dataMocks.organizations)
       expect(res).toEqual(dataMocks.org)
-      expect(prompt.promptSelect).toHaveBeenCalledWith('Org', dataMocks.promptChoices.orgs)
+      expect(mockPrompt.promptSelect).toHaveBeenCalledWith('Org', dataMocks.promptChoices.orgs)
     })
     test('with preselected org Id that matches an org', async () => {
       const res = await consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: dataMocks.org.id })
       expect(res).toEqual(dataMocks.org)
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
     })
     test('with preselected org Id that does not matche an org', async () => {
       await expect(consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: 'idontexist' }))
         .rejects.toThrow('Org with id idontexist not found')
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
     })
   })
 
   describe('promptForSelectProject', () => {
     test('prompts with list of projects', async () => {
-      prompt.promptSelect.mockResolvedValue(dataMocks.project)
+      mockPrompt.promptSelect.mockResolvedValue(dataMocks.project)
       const res = await consoleCli.promptForSelectProject(dataMocks.projects)
       expect(res).toEqual(dataMocks.project)
-      expect(prompt.promptSelect).toHaveBeenCalledWith('Project', dataMocks.promptChoices.projects)
+      expect(mockPrompt.promptSelect).toHaveBeenCalledWith('Project', dataMocks.promptChoices.projects)
     })
     test('prompts with list of projects allowCreate', async () => {
-      prompt.promptSelectOrCreate.mockResolvedValue(dataMocks.project)
+      mockPrompt.promptSelectOrCreate.mockResolvedValue(dataMocks.project)
       const res = await consoleCli.promptForSelectProject(dataMocks.projects, {}, { allowCreate: true })
       expect(res).toEqual(dataMocks.project)
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).toHaveBeenCalledWith('Project', dataMocks.promptChoices.projects)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).toHaveBeenCalledWith('Project', dataMocks.promptChoices.projects)
     })
     test('prompts with list of projects allowCreate and escape selection', async () => {
-      prompt.promptSelectOrCreate.mockResolvedValue(null)
+      mockPrompt.promptSelectOrCreate.mockResolvedValue(null)
       const res = await consoleCli.promptForSelectProject(dataMocks.projects, {}, { allowCreate: true })
       expect(res).toEqual(null)
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).toHaveBeenCalledWith('Project', dataMocks.promptChoices.projects)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).toHaveBeenCalledWith('Project', dataMocks.promptChoices.projects)
     })
     test('with preselected id that matches an entity', async () => {
       const res = await consoleCli.promptForSelectProject(dataMocks.projects, { projectId: dataMocks.project.id })
       expect(res).toEqual(dataMocks.project)
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
     test('with preselected id that does not match an entity', async () => {
       await expect(consoleCli.promptForSelectProject(dataMocks.projects, { projectId: 'idontexist' }))
         .rejects.toThrow('Project with id idontexist not found')
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
   })
 
   describe('promptForSelectWorkspace', () => {
     test('prompts with list of workspaces', async () => {
-      prompt.promptSelect.mockResolvedValue(dataMocks.workspace)
+      mockPrompt.promptSelect.mockResolvedValue(dataMocks.workspace)
       const res = await consoleCli.promptForSelectWorkspace(dataMocks.workspaces)
       expect(res).toEqual(dataMocks.workspace)
-      expect(prompt.promptSelect).toHaveBeenCalledWith('Workspace', dataMocks.promptChoices.workspaces)
+      expect(mockPrompt.promptSelect).toHaveBeenCalledWith('Workspace', dataMocks.promptChoices.workspaces)
     })
     test('prompts with list of workspaces allowCreate', async () => {
-      prompt.promptSelectOrCreate.mockResolvedValue(dataMocks.workspace)
+      mockPrompt.promptSelectOrCreate.mockResolvedValue(dataMocks.workspace)
       const res = await consoleCli.promptForSelectWorkspace(dataMocks.workspaces, {}, { allowCreate: true })
       expect(res).toEqual(dataMocks.workspace)
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).toHaveBeenCalledWith('Workspace', dataMocks.promptChoices.workspaces)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).toHaveBeenCalledWith('Workspace', dataMocks.promptChoices.workspaces)
     })
     test('prompts with list of workspaces allowCreate and escape selection', async () => {
-      prompt.promptSelectOrCreate.mockResolvedValue(null)
+      mockPrompt.promptSelectOrCreate.mockResolvedValue(null)
       const res = await consoleCli.promptForSelectWorkspace(dataMocks.workspaces, {}, { allowCreate: true })
       expect(res).toEqual(null)
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).toHaveBeenCalledWith('Workspace', dataMocks.promptChoices.workspaces)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).toHaveBeenCalledWith('Workspace', dataMocks.promptChoices.workspaces)
     })
     test('with preselected id that matches an entity', async () => {
       const res = await consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: dataMocks.workspace.id })
       expect(res).toEqual(dataMocks.workspace)
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
     test('with preselected id that does not match an entity', async () => {
       await expect(consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: 'idontexist' }))
         .rejects.toThrow('Workspace with id idontexist not found')
-      expect(prompt.promptSelect).not.toHaveBeenCalled()
-      expect(prompt.promptSelectOrCreate).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
   })
 
   test('promptForCreateProjectDetails', async () => {
-    prompt.promptInput.mockResolvedValueOnce('name')
-    prompt.promptInput.mockResolvedValueOnce('title')
-    prompt.promptInput.mockResolvedValueOnce('description')
+    mockPrompt.promptInput.mockResolvedValueOnce('name')
+    mockPrompt.promptInput.mockResolvedValueOnce('title')
+    mockPrompt.promptInput.mockResolvedValueOnce('description')
     const res = await consoleCli.promptForCreateProjectDetails()
     expect(res).toEqual({
       name: 'name', title: 'title', description: 'description'
     })
-    expect(prompt.promptInput).toHaveBeenCalledTimes(3)
-    expect(prompt.promptInput.mock.calls[0])
+    expect(mockPrompt.promptInput).toHaveBeenCalledTimes(3)
+    expect(mockPrompt.promptInput.mock.calls[0])
       .toEqual(['Name', { validate: validators.validateProjectName }])
-    expect(prompt.promptInput.mock.calls[1])
+    expect(mockPrompt.promptInput.mock.calls[1])
       .toEqual(['Title', { validate: validators.validateProjectTitle }])
-    expect(prompt.promptInput.mock.calls[2])
+    expect(mockPrompt.promptInput.mock.calls[2])
       .toEqual(['Description', { validate: validators.validateProjectDescription, default: '' }])
   })
 
   test('promptForCreateWorkspaceDetails', async () => {
-    prompt.promptInput.mockResolvedValueOnce('name')
-    prompt.promptInput.mockResolvedValueOnce('title')
+    mockPrompt.promptInput.mockResolvedValueOnce('name')
+    mockPrompt.promptInput.mockResolvedValueOnce('title')
     const res = await consoleCli.promptForCreateWorkspaceDetails()
     expect(res).toEqual({
       name: 'name', title: 'title'
     })
-    expect(prompt.promptInput).toHaveBeenCalledTimes(2)
-    expect(prompt.promptInput.mock.calls[0])
+    expect(mockPrompt.promptInput).toHaveBeenCalledTimes(2)
+    expect(mockPrompt.promptInput.mock.calls[0])
       .toEqual(['Name', { validate: validators.validateWorkspaceName }])
-    expect(prompt.promptInput.mock.calls[1])
+    expect(mockPrompt.promptInput.mock.calls[1])
       .toEqual(['Title', { validate: validators.validateWorkspaceTitle, default: '' }])
   })
 
@@ -610,22 +617,22 @@ describe('instance methods tests', () => {
     test('select services', async () => {
       // selected services
       const selectedServices = dataMocks.services.filter(s => dataMocks.integration.sdkList.includes(s.code))
-      prompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
+      mockPrompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
       // for each service select some licenseConfigs
       dataMocks.integration.serviceProperties.forEach(s => {
-        prompt.promptMultiSelect.mockResolvedValueOnce(s.licenseConfigs)
+        mockPrompt.promptMultiSelect.mockResolvedValueOnce(s.licenseConfigs)
       })
 
       const res = await consoleCli.promptForSelectServiceProperties(dataMocks.workspace.name, dataMocks.services)
       expect(res).toEqual(dataMocks.integration.serviceProperties)
-      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+      expect(mockPrompt.promptMultiSelect).toHaveBeenCalledWith(
         `Add Services to Workspace ${dataMocks.workspace.name}`,
         dataMocks.promptChoices.services,
         { validate: validators.atLeastOne }
       )
       dataMocks.integration.serviceProperties.forEach((s, i) => {
         if (s.licenseConfigs) {
-          expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+          expect(mockPrompt.promptMultiSelect).toHaveBeenCalledWith(
             `Select Product Profiles for the service '${s.name}'`,
             dataMocks.promptChoices.licenseConfigs[i],
             { validate: validators.atLeastOne }
@@ -635,40 +642,40 @@ describe('instance methods tests', () => {
     })
     test('no selection + workspace name is an array', async () => {
       // selected services
-      prompt.promptMultiSelect.mockResolvedValueOnce([])
+      mockPrompt.promptMultiSelect.mockResolvedValueOnce([])
 
       const res = await consoleCli.promptForSelectServiceProperties(['wname1', 'wname2'], dataMocks.services)
       expect(res).toEqual([])
-      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+      expect(mockPrompt.promptMultiSelect).toHaveBeenCalledWith(
         'Add Services to Workspaces wname1 and wname2',
         dataMocks.promptChoices.services,
         { validate: validators.atLeastOne }
       )
-      expect(prompt.promptMultiSelect).toHaveBeenCalledTimes(1) // no licenseConfigs selections
+      expect(mockPrompt.promptMultiSelect).toHaveBeenCalledTimes(1) // no licenseConfigs selections
     })
   })
 
   describe('confirmNewServiceSubscriptions', () => {
     test('yes', async () => {
-      prompt.promptConfirm.mockResolvedValue(true)
+      mockPrompt.promptConfirm.mockResolvedValue(true)
       const res = await consoleCli.confirmNewServiceSubscriptions('workspacename', dataMocks.serviceProperties)
       expect(res).toBe(true)
-      expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
+      expect(mockPrompt.promptConfirm).toHaveBeenCalledTimes(1)
       // make sure user sees a list of services and workspacename before confirming
-      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('Workspace workspacename'))
-      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining(JSON.stringify(dataMocks.serviceProperties.map(s => s.name), null, 4)))
+      expect(mockPrompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('Workspace workspacename'))
+      expect(mockPrompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining(JSON.stringify(dataMocks.serviceProperties.map(s => s.name), null, 4)))
     })
     test('no', async () => {
-      prompt.promptConfirm.mockResolvedValue(false)
+      mockPrompt.promptConfirm.mockResolvedValue(false)
       const res = await consoleCli.confirmNewServiceSubscriptions('workspacename', dataMocks.serviceProperties)
       expect(res).toBe(false)
-      expect(prompt.promptConfirm).toHaveBeenCalledTimes(1)
+      expect(mockPrompt.promptConfirm).toHaveBeenCalledTimes(1)
     })
     test('with array input', async () => {
-      prompt.promptConfirm.mockResolvedValue(true)
+      mockPrompt.promptConfirm.mockResolvedValue(true)
       const res = await consoleCli.confirmNewServiceSubscriptions(['w1', 'w2'], dataMocks.serviceProperties)
       expect(res).toBe(true)
-      expect(prompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('Workspaces w1 and w2'))
+      expect(mockPrompt.promptConfirm.mock.calls[0][0]).toEqual(expect.stringContaining('Workspaces w1 and w2'))
     })
   })
 
@@ -676,18 +683,18 @@ describe('instance methods tests', () => {
     test('cloneChoice=false and nopChoice=false', async () => {
       const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { cloneChoice: false, nopChoice: false })
       expect(res).toEqual('select')
-      expect(prompt.promptChoice).not.toHaveBeenCalled()
+      expect(mockPrompt.promptChoice).not.toHaveBeenCalled()
     })
     test('cloneChoice=false (by default) and nopChoice=false', async () => {
       const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: false })
       expect(res).toEqual('select')
-      expect(prompt.promptChoice).not.toHaveBeenCalled()
+      expect(mockPrompt.promptChoice).not.toHaveBeenCalled()
     })
     test('nopChoice=true', async () => {
-      prompt.promptChoice.mockReturnValue('avalidchoice')
+      mockPrompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: true })
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptChoice).toHaveBeenCalledWith(
+      expect(mockPrompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'select' }),
@@ -697,10 +704,10 @@ describe('instance methods tests', () => {
       )
     })
     test('nopChoice=true (by default)', async () => {
-      prompt.promptChoice.mockReturnValue('avalidchoice')
+      mockPrompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename')
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptChoice).toHaveBeenCalledWith(
+      expect(mockPrompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'select' }),
@@ -710,10 +717,10 @@ describe('instance methods tests', () => {
       )
     })
     test('nopChoice=true cloneChoice=true', async () => {
-      prompt.promptChoice.mockReturnValue('avalidchoice')
+      mockPrompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: true, cloneChoice: true })
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptChoice).toHaveBeenCalledWith(
+      expect(mockPrompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'select' }),
@@ -724,10 +731,10 @@ describe('instance methods tests', () => {
       )
     })
     test('nopChoice=false cloneChoice=true', async () => {
-      prompt.promptChoice.mockReturnValue('avalidchoice')
+      mockPrompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForServiceSubscriptionsOperation('workspacename', { nopChoice: false, cloneChoice: true })
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptChoice).toHaveBeenCalledWith(
+      expect(mockPrompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('workspacename'),
         [
           expect.objectContaining({ value: 'select' }),
@@ -737,10 +744,10 @@ describe('instance methods tests', () => {
       )
     })
     test('workspacename is array', async () => {
-      prompt.promptChoice.mockReturnValue('avalidchoice')
+      mockPrompt.promptChoice.mockReturnValue('avalidchoice')
       const res = await consoleCli.promptForServiceSubscriptionsOperation(['wname1', 'wname2'])
       expect(res).toEqual('avalidchoice')
-      expect(prompt.promptChoice).toHaveBeenCalledWith(
+      expect(mockPrompt.promptChoice).toHaveBeenCalledWith(
         expect.stringContaining('Workspaces wname1 and wname2'),
         [
           expect.objectContaining({ value: 'select' }),
@@ -755,13 +762,13 @@ describe('instance methods tests', () => {
       const initialList = dataMocks.serviceProperties
       // selected services
       const selectedServices = [initialList[1]]
-      prompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
+      mockPrompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
       // expected result
       const expectedResult = [initialList[0], ...initialList.slice(2)]
 
       const res = await consoleCli.promptForRemoveServiceSubscriptions(dataMocks.workspace.name, initialList)
       expect(res).toEqual(expectedResult)
-      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+      expect(mockPrompt.promptMultiSelect).toHaveBeenCalledWith(
         `Delete Services from Workspace ${dataMocks.workspace.name}`,
         // to choice
         initialList.map(s => ({ name: s.name, value: s }))
@@ -771,11 +778,11 @@ describe('instance methods tests', () => {
       const initialList = dataMocks.serviceProperties
       // selected services
       const selectedServices = []
-      prompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
+      mockPrompt.promptMultiSelect.mockResolvedValueOnce(selectedServices)
 
       const res = await consoleCli.promptForRemoveServiceSubscriptions([dataMocks.workspace.name, 'workspace2'], initialList)
       expect(res).toEqual(null)
-      expect(prompt.promptMultiSelect).toHaveBeenCalledWith(
+      expect(mockPrompt.promptMultiSelect).toHaveBeenCalledWith(
         `Delete Services from Workspaces ${dataMocks.workspace.name} and workspace2`,
         // to choice
         initialList.map(s => ({ name: s.name, value: s }))

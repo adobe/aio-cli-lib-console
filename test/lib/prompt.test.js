@@ -18,7 +18,7 @@ inquirer.createPromptModule = jest.fn().mockReturnValue(mockPrompt)
 mockPrompt.registerPrompt = jest.fn()
 
 // after global mocks
-const prompt = require('../../lib/prompt')
+const prompt = require('../../lib/prompt')()
 
 beforeEach(() => {
   mockPrompt.mockReset()
