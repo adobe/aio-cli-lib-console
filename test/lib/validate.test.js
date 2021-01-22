@@ -170,3 +170,15 @@ describe('validateProjectDescription', () => {
     expect(typeof v.validateProjectDescription(input)).toEqual('string')
   })
 })
+
+describe('atLeastOne', () => {
+  test('none', () => {
+    expect(v.atLeastOne([])).toEqual('please choose at least one option')
+  })
+  test('1', () => {
+    expect(v.atLeastOne([1])).toEqual(true)
+  })
+  test('2', () => {
+    expect(v.atLeastOne([1, 2])).toEqual(true)
+  })
+})
