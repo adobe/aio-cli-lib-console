@@ -275,19 +275,6 @@ describe('instance methods tests', () => {
   })
 
   describe('subscribeToServices', () => {
-    test('no services to be added', async () => {
-      const ret = await consoleCli.subscribeToServices(
-        dataMocks.org.id,
-        dataMocks.project,
-        dataMocks.workspace,
-        'certdir',
-        []
-      )
-      expect(ret).toEqual({ sdkList: [] })
-      expect(mockConsoleSDKInstance.getCredentials).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.subscribeCredentialToServices).not.toHaveBeenCalled()
-    })
     test('services to be added and no integration to be created', async () => {
       // default mock of getCredentials returns the existing integration
       const ret = await consoleCli.subscribeToServices(
