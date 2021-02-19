@@ -72,6 +72,9 @@ describe('validateWorkspaceName', () => {
 
     input = '' // 0 empty
     expect(typeof v.validateWorkspaceName(input)).toEqual('string')
+
+    input = '    ' // only spaces
+    expect(typeof v.validateWorkspaceName(input)).toEqual('string')
   })
 })
 
@@ -92,6 +95,9 @@ describe('validateProjectTitle', () => {
 
     input = 'a' // 1 char input
     expect(v.validateProjectTitle(input)).toBe(true)
+
+    input = ' a   ' // trailing spaces are allowed
+    expect(v.validateProjectTitle(input)).toBe(true)
   })
 
   test('failure', () => {
@@ -105,6 +111,9 @@ describe('validateProjectTitle', () => {
 
     input = '' // 0 char input
     expect(typeof v.validateProjectTitle(input)).toEqual('string')
+
+    input = '    ' // only spaces
+    expect(typeof v.validateWorkspaceName(input)).toEqual('string')
   })
 })
 
@@ -126,6 +135,9 @@ describe('validateWorkspaceTitle', () => {
     input = 'a' // 1 char input
     expect(v.validateWorkspaceTitle(input)).toBe(true)
 
+    input = ' a  ' // trailing spaces
+    expect(v.validateWorkspaceTitle(input)).toBe(true)
+
     input = '' // 0 char input
     expect(v.validateWorkspaceTitle(input)).toBe(true)
   })
@@ -138,6 +150,9 @@ describe('validateWorkspaceTitle', () => {
 
     input = '1234567890123456789012345678901234567890123456' // 46 char input
     expect(typeof v.validateWorkspaceTitle(input)).toEqual('string')
+
+    input = '    ' // only spaces
+    expect(typeof v.validateWorkspaceName(input)).toEqual('string')
   })
 })
 
@@ -159,6 +174,9 @@ describe('validateProjectDescription', () => {
     input = 'a' // 1 char input
     expect(v.validateProjectDescription(input)).toBe(true)
 
+    input = ' a  ' // trailing spaces
+    expect(v.validateWorkspaceTitle(input)).toBe(true)
+
     input = '' // 0 char input
     expect(v.validateProjectDescription(input)).toBe(true)
   })
@@ -168,6 +186,9 @@ describe('validateProjectDescription', () => {
 
     input = '1234567890'.repeat(100) + '1' // 1001 char input
     expect(typeof v.validateProjectDescription(input)).toEqual('string')
+
+    input = '    ' // only spaces
+    expect(typeof v.validateWorkspaceName(input)).toEqual('string')
   })
 })
 
