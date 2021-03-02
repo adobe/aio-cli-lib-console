@@ -464,20 +464,36 @@ describe('instance methods tests', () => {
     })
   })
 
-  test('getWorkspaceConfig', async () => {
-    // relies on default mock for getCredentials
-    const ret = await consoleCli.getWorkspaceConfig(
-      dataMocks.org.id,
-      dataMocks.project.id,
-      dataMocks.workspace.id,
-      dataMocks.services
-    )
-    expect(ret).toEqual(dataMocks.enhancedWorkspaceJson)
-    expect(mockConsoleSDKInstance.downloadWorkspaceJson).toHaveBeenCalledWith(
-      dataMocks.org.id,
-      dataMocks.project.id,
-      dataMocks.workspace.id
-    )
+  describe('getWorkspaceConfig', () => {
+    test('with supported services', async () => {
+      // relies on default mock for getCredentials
+      const ret = await consoleCli.getWorkspaceConfig(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id,
+        dataMocks.services
+      )
+      expect(ret).toEqual(dataMocks.enhancedWorkspaceJson)
+      expect(mockConsoleSDKInstance.downloadWorkspaceJson).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+    })
+    test('without supported services', async () => {
+      // relies on default mock for getCredentials
+      const ret = await consoleCli.getWorkspaceConfig(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+      expect(ret).toEqual(dataMocks.workspaceJson)
+      expect(mockConsoleSDKInstance.downloadWorkspaceJson).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+    })
   })
 
   describe('promptForSelectOrganization', () => {
@@ -487,14 +503,39 @@ describe('instance methods tests', () => {
       expect(res).toEqual(dataMocks.org)
       expect(mockPrompt.promptSelect).toHaveBeenCalledWith('Org', dataMocks.promptChoices.orgs)
     })
-    test('with preselected org Id that matches an org', async () => {
+    test('with preselected org id that matches an entity', async () => {
       const res = await consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: dataMocks.org.id })
       expect(res).toEqual(dataMocks.org)
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
     })
-    test('with preselected org Id that does not matche an org', async () => {
+    test('with preselected org code that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgCode: dataMocks.org.code })
+      expect(res).toEqual(dataMocks.org)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+    })
+    test('with preselected id and org code that match same entity', async () => {
+      const res = await consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: dataMocks.org.id, orgCode: dataMocks.org.code })
+      expect(res).toEqual(dataMocks.org)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+    })
+    test('with preselected id that could be org code that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: dataMocks.org.id, orgCode: dataMocks.org.id })
+      expect(res).toEqual(dataMocks.org)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+    })
+    test('with preselected org code that could be id that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: dataMocks.org.code, orgCode: dataMocks.org.code })
+      expect(res).toEqual(dataMocks.org)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+    })
+    test('with preselected org code that does not match an entity', async () => {
       await expect(consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: 'idontexist' }))
-        .rejects.toThrow('Org with id idontexist not found')
+        .rejects.toThrow('Organization \'idontexist\' not found.')
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+    })
+    test('with preselected org id and org code that match two different orgs', async () => {
+      await expect(consoleCli.promptForSelectOrganization(dataMocks.organizations, { orgId: dataMocks.organizations[0].id, orgCode: dataMocks.organizations[1].code }))
+        .rejects.toThrow("Organization code '22222222226666666666DDDD@AdobeOrg' and id '12345' do not refer to the same Organization.")
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
     })
   })
@@ -526,9 +567,39 @@ describe('instance methods tests', () => {
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
+    test('with preselected name that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectProject(dataMocks.projects, { projectName: dataMocks.project.name })
+      expect(res).toEqual(dataMocks.project)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id and name that match the same entity', async () => {
+      const res = await consoleCli.promptForSelectProject(dataMocks.projects, { projectId: dataMocks.project.id, projectName: dataMocks.project.name })
+      expect(res).toEqual(dataMocks.project)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id that could be name that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectProject(dataMocks.projects, { projectId: dataMocks.project.id, projectName: dataMocks.project.id })
+      expect(res).toEqual(dataMocks.project)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected name that could be id that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectProject(dataMocks.projects, { projectId: dataMocks.project.id, projectName: dataMocks.project.id })
+      expect(res).toEqual(dataMocks.project)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
     test('with preselected id that does not match an entity', async () => {
       await expect(consoleCli.promptForSelectProject(dataMocks.projects, { projectId: 'idontexist' }))
-        .rejects.toThrow('Project with id idontexist not found')
+        .rejects.toThrow('Project \'idontexist\' not found')
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id and preselected name that exists but point to two different projects', async () => {
+      await expect(consoleCli.promptForSelectProject(dataMocks.projects, { projectId: dataMocks.projects[0].id, projectName: dataMocks.projects[1].name }))
+        .rejects.toThrow("Project name 'mySecondProject' and id '1234567890123456789' do not refer to the same Project.")
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
@@ -561,9 +632,39 @@ describe('instance methods tests', () => {
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
+    test('with preselected name that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceName: dataMocks.workspace.name })
+      expect(res).toEqual(dataMocks.workspace)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id and name that match the same entity', async () => {
+      const res = await consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: dataMocks.workspace.id, workspaceName: dataMocks.workspace.name })
+      expect(res).toEqual(dataMocks.workspace)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id that could be name that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: dataMocks.workspace.id, workspaceName: dataMocks.workspace.id })
+      expect(res).toEqual(dataMocks.workspace)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected name that could be id that matches an entity', async () => {
+      const res = await consoleCli.promptForSelectProject(dataMocks.projects, { projectId: dataMocks.project.name, projectName: dataMocks.project.name })
+      expect(res).toEqual(dataMocks.project)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
     test('with preselected id that does not match an entity', async () => {
       await expect(consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: 'idontexist' }))
-        .rejects.toThrow('Workspace with id idontexist not found')
+        .rejects.toThrow('Workspace \'idontexist\' not found')
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id and preselected name that exists but point to two different workspaces', async () => {
+      await expect(consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: dataMocks.workspaces[0].id, workspaceName: dataMocks.workspaces[1].name }))
+        .rejects.toThrow("Workspace name 'Stage' and id '1111111111111111111' do not refer to the same Workspace.")
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
