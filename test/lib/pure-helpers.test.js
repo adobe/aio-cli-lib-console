@@ -164,35 +164,83 @@ describe('getServiceSubscriptionsOperationPromptChoices', () => {
 })
 
 describe('findOrgOrThrow', () => {
-  test('with orgId found in organizations', () => {
-    expect(helpers.findOrgOrThrow(dataMocks.org.id, dataMocks.organizations))
+  test('with org id found in organizations', () => {
+    expect(helpers.findOrgOrThrow(dataMocks.org.id, undefined, dataMocks.organizations))
       .toEqual(dataMocks.org)
   })
+  test('with org code found in organizations', () => {
+    expect(helpers.findOrgOrThrow(undefined, dataMocks.org.code, dataMocks.organizations))
+      .toEqual(dataMocks.org)
+  })
+  test('with org code and id pointing to same org', () => {
+    expect(helpers.findOrgOrThrow(dataMocks.org.id, dataMocks.org.code, dataMocks.organizations))
+      .toEqual(dataMocks.org)
+  })
+  test('with org code and id pointing to different orgs', () => {
+    expect(() => helpers.findOrgOrThrow(dataMocks.organizations[0].id, dataMocks.organizations[1].code, dataMocks.organizations))
+      .toThrow("Organization code '22222222226666666666DDDD@AdobeOrg' and id '12345' do not refer to the same Organization.")
+  })
   test('with orgId not found in organizations', () => {
-    expect(() => helpers.findOrgOrThrow('iamanonexistingid', dataMocks.organizations))
-      .toThrow('Org with id iamanonexistingid not found')
+    expect(() => helpers.findOrgOrThrow('iamanonexistingid', undefined, dataMocks.organizations))
+      .toThrow("Organization 'iamanonexistingid' not found.")
+  })
+  test('with orgId and code not found in organizations', () => {
+    expect(() => helpers.findOrgOrThrow('iamanonexistingid', 'badcode', dataMocks.organizations))
+      .toThrow("Organization 'badcode' not found.")
   })
 })
 
 describe('findProjectOrThrow', () => {
   test('with projectId found in projects', () => {
-    expect(helpers.findProjectOrThrow(dataMocks.project.id, dataMocks.projects))
+    expect(helpers.findProjectOrThrow(dataMocks.project.id, undefined, dataMocks.projects))
       .toEqual(dataMocks.project)
   })
+  test('with projectName found in projects', () => {
+    expect(helpers.findProjectOrThrow(undefined, dataMocks.project.name, dataMocks.projects))
+      .toEqual(dataMocks.project)
+  })
+  test('with projectName and projectId pointing to the same project', () => {
+    expect(helpers.findProjectOrThrow(dataMocks.project.id, dataMocks.project.name, dataMocks.projects))
+      .toEqual(dataMocks.project)
+  })
+  test('with projectId and projectName pointing to different projects', () => {
+    expect(() => helpers.findProjectOrThrow(dataMocks.projects[0].id, dataMocks.projects[1].name, dataMocks.projects))
+      .toThrow("Project name 'mySecondProject' and id '1234567890123456789' do not refer to the same Project.")
+  })
   test('with projectId not found in projects', () => {
-    expect(() => helpers.findProjectOrThrow('iamanonexistingid', dataMocks.projects))
-      .toThrow('Project with id iamanonexistingid not found')
+    expect(() => helpers.findProjectOrThrow('iamanonexistingid', undefined, dataMocks.projects))
+      .toThrow("Project 'iamanonexistingid' not found.")
+  })
+  test('with projectId and projectName not found in projects', () => {
+    expect(() => helpers.findProjectOrThrow('iamanonexistingid', 'cannotfind', dataMocks.projects))
+      .toThrow("Project 'cannotfind' not found.")
   })
 })
 
 describe('findWorkspaceOrThrow', () => {
   test('with workspaceId found in workspaces', () => {
-    expect(helpers.findWorkspaceOrThrow(dataMocks.workspace.id, dataMocks.workspaces))
+    expect(helpers.findWorkspaceOrThrow(dataMocks.workspace.id, undefined, dataMocks.workspaces))
       .toEqual(dataMocks.workspace)
   })
+  test('with workspaceName found in workspaces', () => {
+    expect(helpers.findWorkspaceOrThrow(undefined, dataMocks.workspace.name, dataMocks.workspaces))
+      .toEqual(dataMocks.workspace)
+  })
+  test('with workspaceId and workspaceName pointing to same workspace', () => {
+    expect(helpers.findWorkspaceOrThrow(dataMocks.workspace.id, dataMocks.workspace.name, dataMocks.workspaces))
+      .toEqual(dataMocks.workspace)
+  })
+  test('with workspace id and workspace name pointing to two different workspaces', () => {
+    expect(() => helpers.findWorkspaceOrThrow(dataMocks.workspaces[0].id, dataMocks.workspaces[1].name, dataMocks.workspaces))
+      .toThrow("Workspace name 'Stage' and id '1111111111111111111' do not refer to the same Workspace.")
+  })
+  test('with workspace id and workspace name not found in workspaces', () => {
+    expect(() => helpers.findWorkspaceOrThrow('iamanonexistingid', 'cantfind', dataMocks.workspaces))
+      .toThrow("Workspace 'cantfind' not found.")
+  })
   test('with workspaceId not found in workspaces', () => {
-    expect(() => helpers.findWorkspaceOrThrow('iamanonexistingid', dataMocks.workspaces))
-      .toThrow('Workspace with id iamanonexistingid not found')
+    expect(() => helpers.findWorkspaceOrThrow('iamanonexistingid', undefined, dataMocks.workspaces))
+      .toThrow("Workspace 'iamanonexistingid' not found.")
   })
 })
 
