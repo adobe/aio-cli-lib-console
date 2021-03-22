@@ -1,6 +1,6 @@
 {
   "name": "@adobe/generator-aio-console",
-  "version": "2.0.7",
+  "version": "2.1.0",
   "description": "Adobe I/O Console project yeoman generator",
   "main": "generators/app/index.js",
   "scripts": {
