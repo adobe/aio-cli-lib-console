@@ -44,7 +44,7 @@
     "yeoman-test": "^2.6.0"
   },
   "dependencies": {
-    "@adobe/aio-cli-plugin-certificate": "^0.2.1",
+    "@adobe/aio-cli-plugin-certificate": "^0.3.0",
     "@adobe/aio-lib-console": "^2.1.0",
     "@adobe/aio-lib-core-logging": "^1.1.2",
     "fs-extra": "^9.0.1",
