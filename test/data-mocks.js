@@ -134,7 +134,6 @@ const workspaces = [{
   who_last_modified: someUserOrgCode,
   description: 'ProjectWorkspace description',
   quota_usage: 'Quota usage for workspace',
-  runtime_enabled: 1,
   runtime_namespace: runtimeNamespacePrefix,
   id: '1111111111111111111'
 },
@@ -148,7 +147,6 @@ const workspaces = [{
   who_last_modified: someOtherUserOrgCode,
   description: '',
   quota_usage: '',
-  runtime_enabled: 1,
   runtime_namespace: runtimeNamespacePrefix + '-stage',
   id: '1111111111111111112'
 },
@@ -162,7 +160,6 @@ const workspaces = [{
   who_last_modified: someOtherUserOrgCode,
   description: 'some description',
   quota_usage: '',
-  runtime_enabled: 1,
   runtime_namespace: runtimeNamespacePrefix + '-dev1',
   id: '5678912304567890123'
 },
@@ -176,23 +173,8 @@ const workspaces = [{
   who_last_modified: someOtherUserOrgCode,
   description: 'some description',
   quota_usage: '',
-  runtime_enabled: 1,
   runtime_namespace: runtimeNamespacePrefix + '-dev2',
   id: '1111111111111111113'
-},
-{
-  name: 'dev3',
-  enabled: 1,
-  title: 'some title3',
-  date_created: someDate,
-  date_last_modified: someLaterDate,
-  who_created: someUserOrgCode,
-  who_last_modified: someOtherUserOrgCode,
-  description: '',
-  quota_usage: '',
-  runtime_enabled: 0,
-  runtime_namespace: null,
-  id: '1111111111111111114'
 }]
 
 const workspace = workspaces[2]
