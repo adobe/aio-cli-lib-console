@@ -1,20 +1,42 @@
-# Adobe I/O Console Generator
+# Adobe I/O Lib CLI Console
 
-A Yeoman generator for bootstrapping an Adobe I/O Console Project.
+[![Version](https://img.shields.io/npm/v/@adobe/aio-lib-cli-console.svg)](https://npmjs.org/package/@adobe/aio-lib-cli-console)
+[![Downloads/week](https://img.shields.io/npm/dw/@adobe/aio-lib-cli-console.svg)](https://npmjs.org/package/@adobe/aio-lib-cli-console)
+![Node.js CI](https://github.com/adobe/aio-lib-cli-console/workflows/Node.js%20CI/badge.svg)[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/aio-lib-cli-console/master.svg?style=flat-square)](https://codecov.io/gh/adobe/aio-lib-cli-console/)
 
-[![Version](https://img.shields.io/npm/v/@adobe/generator-aio-console.svg)](https://npmjs.org/package/@adobe/generator-aio-console)
-[![Downloads/week](https://img.shields.io/npm/dw/@adobe/generator-aio-console.svg)](https://npmjs.org/package/@adobe/generator-aio-console)
-![Node.js CI](https://github.com/adobe/generator-aio-console/workflows/Node.js%20CI/badge.svg)[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Codecov Coverage](https://img.shields.io/codecov/c/github/adobe/generator-aio-console/master.svg?style=flat-square)](https://codecov.io/gh/adobe/generator-aio-console/)
+A library providing command line primitives to interract with the Adobe Developer Console.
 
+## Install & Usage
 
-## Usage
+**Note**: This module is not intented for usage on its own, it should be used **only** by Adobe I/O CLI plugins.
 
-This module is used by the Adobe I/O CLI app plugin.
+- `npm install @adobe/aio-lib-cli-console`
 
-- `npm install -g @adobe/aio-cli`
+```javascript
+const LibConsoleCLI = require('@adobe/aio-lib-cli-console')
+const consoleCLI = await LibConsoleCLI.init({ accessToken, env, apiKey: CONSOLE_API_KEYS[env] })
 
-- `aio app init` will run `@adobe/generator-aio-console` among other things.
+// select a Console Organization
+const organizations = await consoleCLI.getOrganizations()
+const org = await consoleCLI.promptForSelectOrganization(organizations)
+
+// create a Console Firefly Project
+const projectDetails = await consoleCLI.promptForCreateProjectDetails()
+const project = await consoleCLI.createProject(org.id, projectDetails)
+
+// add services to a selected Workspace, will create a new entp integration if there is none
+const workspaces = await consoleCLI.getWorkspaces(org.id, project.id)
+const workspace = await consoleCLI.promptForSelectWorkspace(workspaces)
+const services = await consoleCLI.promptForSelectServiceProperties(workspace.name)
+await consoleCLI.subscribeToServices(
+  org.id,
+  project,
+  workspace,
+  'folder/to/store/certificate',
+  newServiceProperties
+)
+```
 
 ## Contributing
 

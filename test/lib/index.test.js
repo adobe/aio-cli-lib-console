@@ -142,7 +142,7 @@ beforeEach(() => {
 })
 
 // require lib after setting up mocks
-const LibConsoleCli = require('../../lib/console-cli')
+const LibConsoleCli = require('../../')
 
 test('init', async () => {
   await LibConsoleCli.init(consoleCredentials, {})
