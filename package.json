@@ -5,7 +5,8 @@
   "main": "generators/app/index.js",
   "scripts": {
     "lint": "eslint generators lib",
-    "test": "npm run lint && jest -c ./jest.config.js"
+    "unit-tests": "jest -c ./jest.config.js",
+    "test": "npm run lint && npm run unit-tests"
   },
   "repository": {
     "type": "git",
