@@ -31,7 +31,10 @@ const mockConsoleSDKInstance = {
   getSDKProperties: jest.fn(),
   getIntegration: jest.fn(),
   createEnterpriseCredential: jest.fn(),
-  getCredentials: jest.fn()
+  getCredentials: jest.fn(),
+  getEndPointsInWorkspace: jest.fn(),
+  updateEndPointsInWorkspace: jest.fn(),
+  getAllExtensionPoints: jest.fn()
 }
 consoleSDK.init.mockResolvedValue(mockConsoleSDKInstance)
 /** @private */
@@ -59,6 +62,9 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getIntegration.mockResolvedValue({ body: dataMocks.integration })
   mockConsoleSDKInstance.createEnterpriseCredential.mockResolvedValue({ body: dataMocks.integrationCreateResponse })
   mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: dataMocks.integrations })
+  mockConsoleSDKInstance.getEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.baseWorkspaceEndPoints })
+  mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.multipleWorkspaceEndPoints })
+  mockConsoleSDKInstance.getAllExtensionPoints.mockResolvedValue({ body: dataMocks.allExtensionPoints })
 }
 
 // mock prompts
@@ -876,5 +882,49 @@ describe('instance methods tests', () => {
         initialList.map(s => ({ name: s.name, value: s }))
       )
     })
+  })
+
+  test('getExtensionPoints', async () => {
+    const extPoints = await consoleCli.getExtensionPoints({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'})
+    const expectedResult = { endpoints: dataMocks.baseWorkspaceEndPoints}
+    expect(extPoints).toEqual(expectedResult)
+    expect(mockConsoleSDKInstance.getEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('updateExtensionPoints', async () => {
+    const extPoints = await consoleCli.updateExtensionPoints({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'}, dataMocks.baseWorkspaceEndPoints)
+    const expectedResult = { endpoints: dataMocks.multipleWorkspaceEndPoints}
+    expect(extPoints).toEqual(expectedResult)
+    expect(mockConsoleSDKInstance.updateEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('getAllExtensionPoints', async () => {
+    const extPoints = await consoleCli.getAllExtensionPoints({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'}, dataMocks.baseWorkspaceEndPoints)
+    const expectedResult = { endpoints: dataMocks.allExtensionPoints}
+    expect(extPoints).toEqual(expectedResult)
+    expect(mockConsoleSDKInstance.getAllExtensionPoints).toHaveBeenCalled()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('updateExtensionPointsWithoutOverwrites', async () => {
+    const newEndPoints = {
+      endpoints: {
+        'dx/asset-compute/worker/1' : {
+          worker: "test"
+        }
+      }
+    }
+    const extPoints = await consoleCli.updateExtensionPointsWithoutOverwrites({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'}, newEndPoints)
+    const expectedResult = { endpoints: dataMocks.multipleWorkspaceEndPoints}
+    expect(extPoints).toEqual(expectedResult)
+    expect(mockConsoleSDKInstance.getEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockConsoleSDKInstance.updateEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
   })
 })
