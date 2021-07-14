@@ -365,6 +365,21 @@ describe('instance methods tests', () => {
         dataMocks.integration.id
       )
     })
+
+    test('no support services', async () => {
+      // default getIntegration mock returns dataMocks.integration
+      const ret = await consoleCli.getServicePropertiesFromWorkspace(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+      expect(ret).toEqual(dataMocks.serviceProperties)
+      expect(mockConsoleSDKInstance.getIntegration).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.integration.id
+      )
+    })
+    
     test('some services attached to integration in workspace', async () => {
       // default getIntegration mock returns dataMocks.integration
       const ret = await consoleCli.getServicePropertiesFromWorkspace(
@@ -893,11 +908,30 @@ describe('instance methods tests', () => {
     expect(mockOraObject.stop).toHaveBeenCalled()
   })
 
-  test('updateExtensionPoints', async () => {
-    const extPoints = await consoleCli.updateExtensionPoints({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'}, dataMocks.baseWorkspaceEndPoints)
-    const expectedResult = { endpoints: dataMocks.multipleWorkspaceEndPoints}
+  test('getExtensionPoints empty endpoints', async () => {
+    mockConsoleSDKInstance.getEndPointsInWorkspace.mockResolvedValue({ body: null })
+    const extPoints = await consoleCli.getExtensionPoints({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'})
+    const expectedResult = { endpoints: {}}
     expect(extPoints).toEqual(expectedResult)
-    expect(mockConsoleSDKInstance.updateEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockConsoleSDKInstance.getEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('updateExtensionPoints', async () => {
+    const newEndPoints = {
+      endpoints: {
+        'dx/asset-compute/worker/1' : {
+          worker: "test"
+        }
+      }
+    }
+    mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: newEndPoints})
+    const extPoints = await consoleCli.updateExtensionPoints({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'}, newEndPoints)
+    const expectedResult = { endpoints: newEndPoints}
+    expect(extPoints).toEqual(expectedResult)
+    expect(mockConsoleSDKInstance.updateEndPointsInWorkspace).toHaveBeenCalledWith('testOrg', 'testPrj', 'testWS', newEndPoints)
+    expect(mockConsoleSDKInstance.getEndPointsInWorkspace).toHaveBeenCalledTimes(0)
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
   })
@@ -921,6 +955,25 @@ describe('instance methods tests', () => {
     }
     const extPoints = await consoleCli.updateExtensionPointsWithoutOverwrites({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'}, newEndPoints)
     const expectedResult = { endpoints: dataMocks.multipleWorkspaceEndPoints}
+    expect(extPoints).toEqual(expectedResult)
+    expect(mockConsoleSDKInstance.getEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockConsoleSDKInstance.updateEndPointsInWorkspace).toHaveBeenCalled()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('removeSelectedExtensionPoints', async () => {
+    const endPointsToBeRemoved = {
+      endpoints: {
+        'dx/asset-compute/worker/1' : {
+          worker: "test"
+        }
+      }
+    }
+    mockConsoleSDKInstance.getEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.multipleWorkspaceEndPoints})
+    mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.baseWorkspaceEndPoints})
+    const extPoints = await consoleCli.removeSelectedExtensionPoints({id: 'testOrg'}, {id: 'testPrj'}, {id: 'testWS'}, endPointsToBeRemoved)
+    const expectedResult = { endpoints: dataMocks.baseWorkspaceEndPoints}
     expect(extPoints).toEqual(expectedResult)
     expect(mockConsoleSDKInstance.getEndPointsInWorkspace).toHaveBeenCalled()
     expect(mockConsoleSDKInstance.updateEndPointsInWorkspace).toHaveBeenCalled()
