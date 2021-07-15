@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint generators lib",
     "unit-tests": "jest -c ./jest.config.js",
-    "test": ""
+    "test": "npm run lint && npm run unit-tests"
   },
   "repository": {
     "type": "git",
