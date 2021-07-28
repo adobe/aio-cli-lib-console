@@ -491,6 +491,40 @@ const promptChoices = {
   ]
 }
 
+const baseWorkspaceEndPoints = {
+  endpoints: {
+    'dx/excshell/1' : {
+      view: "test"
+    }
+  }
+}
+
+const multipleWorkspaceEndPoints = {
+  endpoints: {
+    'dx/excshell/1' : {
+      view: "test"
+    },
+    'dx/asset-compute/worker/1' : {
+      worker: "test"
+    }
+  }
+}
+
+const allExtensionPoints = [
+  {
+    name: 'dx/excshell/1',
+    operations: {
+      view: "test"
+    }
+  },
+  {
+    name: 'dx/asset-compute/worker/1',
+    operations: {
+      worker: "test"
+    }
+  }
+]
+
 module.exports = {
   organizations,
   projects,
@@ -508,5 +542,7 @@ module.exports = {
   integrationCreateResponse,
   subscribeServicesResponse,
   subscribeServicesPayload,
-  promptChoices
+  promptChoices,
+  baseWorkspaceEndPoints,
+  multipleWorkspaceEndPoints
 }
