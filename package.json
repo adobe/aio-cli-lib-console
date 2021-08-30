@@ -1,7 +1,7 @@
 {
   "name": "@adobe/aio-lib-cli-console",
   "version": "2.2.1",
-  "description": "Adobe I/O Console project yeoman generator",
+  "description": "Adobe I/O Console CLI library",
   "main": "lib/index.js",
   "scripts": {
     "lint": "eslint lib",
@@ -49,7 +49,6 @@
     "inquirer": "^7.3.3",
     "inquirer-autocomplete-prompt": "^1.0.2",
     "lodash.clonedeep": "^4.5.0",
-    "ora": "^4.0.4",
-    "yeoman-generator": "^4.2.0"
+    "ora": "^4.0.4"
   }
 }
