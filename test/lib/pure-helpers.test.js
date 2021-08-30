@@ -263,3 +263,46 @@ describe('workspaceNamesToPromptString', () => {
     expect(helpers.workspaceNamesToPromptString(['wname', 'wname2', 'wname3'])).toEqual('Workspaces wname, wname2 and wname3')
   })
 })
+
+test('mergeExtensionPoints', () => {
+  const newWorkspaceEndPoints = {
+    endpoints: {
+      'dx/asset-compute/worker/1' : {
+        worker: "test"
+      }
+    }
+  }
+
+  const expectedResults = {
+    endpoints: {
+      'dx/asset-compute/worker/1' : {
+        worker: "test"
+      },
+      'dx/excshell/1' : {
+        view: "test"
+      }
+    }
+  }
+  expect(helpers.mergeExtensionPoints(dataMocks.baseWorkspaceEndPoints, newWorkspaceEndPoints))
+    .toEqual(expectedResults)
+})
+
+test('removeExtensionPoints', () => {
+  const toBeRemoved = {
+    endpoints: {
+      'dx/asset-compute/worker/1' : {
+        worker: "test"
+      }
+    }
+  }
+
+  const expectedResults = {
+    endpoints: {
+      'dx/excshell/1' : {
+        view: "test"
+      }
+    }
+  }
+  expect(helpers.removeExtensionPoints(dataMocks.multipleWorkspaceEndPoints, toBeRemoved))
+    .toEqual(expectedResults)
+})
