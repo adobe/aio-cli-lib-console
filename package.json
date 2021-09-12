@@ -54,7 +54,7 @@
     "inquirer": "^7.3.3",
     "inquirer-autocomplete-prompt": "^1.0.2",
     "lodash.clonedeep": "^4.5.0",
-    "ora": "^4.0.4",
+    "ora": "^6.0.0",
     "yeoman-generator": "^5.4.0"
   }
 }
