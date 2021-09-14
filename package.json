@@ -1,6 +1,6 @@
 {
   "name": "@adobe/aio-cli-lib-console",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Adobe I/O Console CLI library",
   "main": "lib/index.js",
   "scripts": {
