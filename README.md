@@ -21,7 +21,7 @@ const consoleCLI = await LibConsoleCLI.init({ accessToken, env, apiKey: CONSOLE_
 const organizations = await consoleCLI.getOrganizations()
 const org = await consoleCLI.promptForSelectOrganization(organizations)
 
-// create a Console Firefly Project
+// create a Console App Builder Project
 const projectDetails = await consoleCLI.promptForCreateProjectDetails()
 const project = await consoleCLI.createProject(org.id, projectDetails)
 
