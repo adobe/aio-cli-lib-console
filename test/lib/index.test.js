@@ -721,6 +721,19 @@ describe('instance methods tests', () => {
     expect(mockPrompt.promptInput.mock.calls[1])
       .toEqual(['Title', { validate: validators.validateWorkspaceTitle, default: '' }])
   })
+  test('promptForCreateWorkspaceDetails, called with default values', async () => {
+    mockPrompt.promptInput.mockResolvedValueOnce('name')
+    mockPrompt.promptInput.mockResolvedValueOnce('title')
+    const testName = 'testName'
+    const testTitle = 'testTitle'
+    await consoleCli.promptForCreateWorkspaceDetails(testName, testTitle)
+    expect(mockPrompt.promptInput).toHaveBeenCalledWith(
+      'Name', { default: testName, validate: expect.anything() }
+    )
+    expect(mockPrompt.promptInput).toHaveBeenCalledWith(
+      'Title', { default: testTitle, validate: expect.anything() }
+    )
+  })
 
   describe('promptForSelectServiceProperties', () => {
     test('select services', async () => {
