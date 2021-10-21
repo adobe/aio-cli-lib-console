@@ -679,7 +679,7 @@ describe('instance methods tests', () => {
     })
     test('with preselected id that does not match an entity', async () => {
       await expect(consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: 'idontexist' }))
-        .rejects.toThrow('Workspace \'idontexist\' not found')
+        .resolves.toEqual(undefined)
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
@@ -720,19 +720,6 @@ describe('instance methods tests', () => {
       .toEqual(['Name', { validate: validators.validateWorkspaceName }])
     expect(mockPrompt.promptInput.mock.calls[1])
       .toEqual(['Title', { validate: validators.validateWorkspaceTitle, default: '' }])
-  })
-  test('promptForCreateWorkspaceDetails, called with default values', async () => {
-    mockPrompt.promptInput.mockResolvedValueOnce('name')
-    mockPrompt.promptInput.mockResolvedValueOnce('title')
-    const testName = 'testName'
-    const testTitle = 'testTitle'
-    await consoleCli.promptForCreateWorkspaceDetails(testName, testTitle)
-    expect(mockPrompt.promptInput).toHaveBeenCalledWith(
-      'Name', { default: testName, validate: expect.anything() }
-    )
-    expect(mockPrompt.promptInput).toHaveBeenCalledWith(
-      'Title', { default: testTitle, validate: expect.anything() }
-    )
   })
 
   describe('promptForSelectServiceProperties', () => {
