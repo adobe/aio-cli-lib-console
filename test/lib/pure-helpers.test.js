@@ -192,55 +192,75 @@ describe('findOrgOrThrow', () => {
 
 describe('findProjectOrThrow', () => {
   test('with projectId found in projects', () => {
-    expect(helpers.findProjectOrThrow(dataMocks.project.id, undefined, dataMocks.projects))
+    const data = { projectId: dataMocks.project.id, projectName: undefined }
+    expect(helpers.findProjectOrThrow(data, dataMocks.projects))
       .toEqual(dataMocks.project)
   })
   test('with projectName found in projects', () => {
-    expect(helpers.findProjectOrThrow(undefined, dataMocks.project.name, dataMocks.projects))
+    const data = { projectId: undefined, projectName: dataMocks.project.name }
+    expect(helpers.findProjectOrThrow(data, dataMocks.projects))
       .toEqual(dataMocks.project)
   })
   test('with projectName and projectId pointing to the same project', () => {
-    expect(helpers.findProjectOrThrow(dataMocks.project.id, dataMocks.project.name, dataMocks.projects))
+    const data = { projectId: dataMocks.project.id, projectName: dataMocks.project.name }
+    expect(helpers.findProjectOrThrow(data, dataMocks.projects))
       .toEqual(dataMocks.project)
   })
   test('with projectId and projectName pointing to different projects', () => {
-    expect(() => helpers.findProjectOrThrow(dataMocks.projects[0].id, dataMocks.projects[1].name, dataMocks.projects))
+    const data = { projectId: dataMocks.projects[0].id, projectName: dataMocks.projects[1].name }
+    expect(() => helpers.findProjectOrThrow(data, dataMocks.projects))
       .toThrow("Project name 'mySecondProject' and id '1234567890123456789' do not refer to the same Project.")
   })
   test('with projectId not found in projects', () => {
-    expect(() => helpers.findProjectOrThrow('iamanonexistingid', undefined, dataMocks.projects))
+    const data = { projectId: 'iamanonexistingid', projectName: undefined }
+    expect(() => helpers.findProjectOrThrow(data, dataMocks.projects))
       .toThrow("Project 'iamanonexistingid' not found.")
   })
   test('with projectId and projectName not found in projects', () => {
-    expect(() => helpers.findProjectOrThrow('iamanonexistingid', 'cannotfind', dataMocks.projects))
+    const data = { projectId: 'iamanonexistingid', projectName: 'cannotfind' }
+    expect(() => helpers.findProjectOrThrow(data, dataMocks.projects))
       .toThrow("Project 'cannotfind' not found.")
+  })
+  test('throwOnNotFound = false, return undefined', () => {
+    const data = { projectId: 'iamanonexistingid', projectName: 'cantfindName' }
+    expect(helpers.findProjectOrThrow(data, dataMocks.workspaces, { throwOnNotFound: false })).toEqual(undefined)
   })
 })
 
 describe('findWorkspaceOrThrow', () => {
   test('with workspaceId found in workspaces', () => {
-    expect(helpers.findWorkspaceOrThrow(dataMocks.workspace.id, undefined, dataMocks.workspaces))
+    const data = { workspaceId: dataMocks.workspace.id, workspaceName: undefined }
+    expect(helpers.findWorkspaceOrThrow(data, dataMocks.workspaces))
       .toEqual(dataMocks.workspace)
   })
   test('with workspaceName found in workspaces', () => {
-    expect(helpers.findWorkspaceOrThrow(undefined, dataMocks.workspace.name, dataMocks.workspaces))
+    const data = { workspaceId: undefined, workspaceName: dataMocks.workspace.name }
+    expect(helpers.findWorkspaceOrThrow(data, dataMocks.workspaces))
       .toEqual(dataMocks.workspace)
   })
   test('with workspaceId and workspaceName pointing to same workspace', () => {
-    expect(helpers.findWorkspaceOrThrow(dataMocks.workspace.id, dataMocks.workspace.name, dataMocks.workspaces))
+    const data = { workspaceId: dataMocks.workspace.id, workspaceName: dataMocks.workspace.name }
+    expect(helpers.findWorkspaceOrThrow(data, dataMocks.workspaces))
       .toEqual(dataMocks.workspace)
   })
   test('with workspace id and workspace name pointing to two different workspaces', () => {
-    expect(() => helpers.findWorkspaceOrThrow(dataMocks.workspaces[0].id, dataMocks.workspaces[1].name, dataMocks.workspaces))
+    const workspaceDetails = { workspaceId: dataMocks.workspaces[0].id, workspaceName: dataMocks.workspaces[1].name }
+    expect(() => helpers.findWorkspaceOrThrow(workspaceDetails, dataMocks.workspaces, { throwOnNotFound: true }))
       .toThrow("Workspace name 'Stage' and id '1111111111111111111' do not refer to the same Workspace.")
   })
   test('with workspace id and workspace name not found in workspaces', () => {
-    expect(() => helpers.findWorkspaceOrThrow('iamanonexistingid', 'cantfind', dataMocks.workspaces))
-      .toThrow("Workspace 'cantfind' not found.")
+    const workspaceDetails = { workspaceId: 'iamanonexistingid', workspaceName: 'cantfindName' }
+    expect(() => helpers.findWorkspaceOrThrow(workspaceDetails, dataMocks.workspaces, { throwOnNotFound: true }))
+      .toThrow("Workspace 'cantfindName' not found.")
   })
   test('with workspaceId not found in workspaces', () => {
-    expect(() => helpers.findWorkspaceOrThrow('iamanonexistingid', undefined, dataMocks.workspaces))
+    const workspaceDetails = { workspaceId: 'iamanonexistingid', workspaceName: undefined }
+    expect(() => helpers.findWorkspaceOrThrow(workspaceDetails, dataMocks.workspaces, { throwOnNotFound: true }))
       .toThrow("Workspace 'iamanonexistingid' not found.")
+  })
+  test('throwOnNotFound = false, return undefined', () => {
+    const workspaceDetails = { workspaceId: 'iamanonexistingid', workspaceName: 'cantfindName' }
+    expect(helpers.findWorkspaceOrThrow(workspaceDetails, dataMocks.workspaces, { throwOnNotFound: false })).toEqual(undefined)
   })
 })
 
@@ -267,19 +287,19 @@ describe('workspaceNamesToPromptString', () => {
 test('mergeExtensionPoints', () => {
   const newWorkspaceEndPoints = {
     endpoints: {
-      'dx/asset-compute/worker/1' : {
-        worker: "test"
+      'dx/asset-compute/worker/1': {
+        worker: 'test'
       }
     }
   }
 
   const expectedResults = {
     endpoints: {
-      'dx/asset-compute/worker/1' : {
-        worker: "test"
+      'dx/asset-compute/worker/1': {
+        worker: 'test'
       },
-      'dx/excshell/1' : {
-        view: "test"
+      'dx/excshell/1': {
+        view: 'test'
       }
     }
   }
@@ -290,16 +310,16 @@ test('mergeExtensionPoints', () => {
 test('removeExtensionPoints', () => {
   const toBeRemoved = {
     endpoints: {
-      'dx/asset-compute/worker/1' : {
-        worker: "test"
+      'dx/asset-compute/worker/1': {
+        worker: 'test'
       }
     }
   }
 
   const expectedResults = {
     endpoints: {
-      'dx/excshell/1' : {
-        view: "test"
+      'dx/excshell/1': {
+        view: 'test'
       }
     }
   }
