@@ -612,9 +612,15 @@ describe('instance methods tests', () => {
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
-    test('with preselected id that does not match an entity', async () => {
-      await expect(consoleCli.promptForSelectProject(dataMocks.projects, { projectId: 'idontexist' }))
+    test('with preselected id that does not match an entity, allowCreate = false', async () => {
+      await expect(consoleCli.promptForSelectProject(dataMocks.projects, { projectId: 'idontexist' }, { allowCreate: false }))
         .rejects.toThrow('Project \'idontexist\' not found')
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id that does not match an entity, allowCreate = true', async () => {
+      await expect(consoleCli.promptForSelectProject(dataMocks.projects, { projectId: 'idontexist' }, { allowCreate: true }))
+        .resolves.toEqual(undefined)
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
@@ -677,8 +683,14 @@ describe('instance methods tests', () => {
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
     })
-    test('with preselected id that does not match an entity', async () => {
-      await expect(consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: 'idontexist' }))
+    test('with preselected id that does not match an entity, allowCreate = true', async () => {
+      await expect(consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: 'idontexist' }, { allowCreate: true }))
+        .resolves.toEqual(undefined)
+      expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
+      expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
+    })
+    test('with preselected id that does not match an entity, allowCreate = false', async () => {
+      await expect(consoleCli.promptForSelectWorkspace(dataMocks.workspaces, { workspaceId: 'idontexist' }, { allowCreate: false }))
         .rejects.toThrow('Workspace \'idontexist\' not found')
       expect(mockPrompt.promptSelect).not.toHaveBeenCalled()
       expect(mockPrompt.promptSelectOrCreate).not.toHaveBeenCalled()
