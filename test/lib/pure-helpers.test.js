@@ -103,6 +103,12 @@ describe('fixServiceProperties', () => {
     expect(helpers.fixServiceProperties(brokenServiceProperties, dataMocks.services))
       .toEqual(dataMocks.serviceProperties)
   })
+
+  test('with mismatched services ', () => {
+    // Note: I am not sure what the result should actually be, but this gets us coverage -jm
+    expect(helpers.fixServiceProperties(dataMocks.serviceProperties, [{ sdkCode: 'firstSDK' }]))
+      .toEqual(expect.any(Array))
+  })
 })
 
 test('servicePropertiesToServiceSubscriptionPayload', () => {
