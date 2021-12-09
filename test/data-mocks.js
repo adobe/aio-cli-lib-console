@@ -493,34 +493,35 @@ const promptChoices = {
 
 const baseWorkspaceEndPoints = {
   endpoints: {
-    'dx/excshell/1' : {
-      view: "test"
+    'dx/excshell/1': {
+      view: 'test'
     }
   }
 }
 
 const multipleWorkspaceEndPoints = {
   endpoints: {
-    'dx/excshell/1' : {
-      view: "test"
+    'dx/excshell/1': {
+      view: 'test'
     },
-    'dx/asset-compute/worker/1' : {
-      worker: "test"
+    'dx/asset-compute/worker/1': {
+      worker: 'test'
     }
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 const allExtensionPoints = [
   {
     name: 'dx/excshell/1',
     operations: {
-      view: "test"
+      view: 'test'
     }
   },
   {
     name: 'dx/asset-compute/worker/1',
     operations: {
-      worker: "test"
+      worker: 'test'
     }
   }
 ]
