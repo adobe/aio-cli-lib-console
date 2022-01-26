@@ -34,7 +34,10 @@ const mockConsoleSDKInstance = {
   getCredentials: jest.fn(),
   getEndPointsInWorkspace: jest.fn(),
   updateEndPointsInWorkspace: jest.fn(),
-  getAllExtensionPoints: jest.fn()
+  getAllExtensionPoints: jest.fn(),
+  checkOrgDevTerms: jest.fn(),
+  getDevTerms: jest.fn(),
+  acceptOrgDevTerms: jest.fn()
 }
 consoleSDK.init.mockResolvedValue(mockConsoleSDKInstance)
 /** @private */
@@ -65,6 +68,9 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.baseWorkspaceEndPoints })
   mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.multipleWorkspaceEndPoints })
   mockConsoleSDKInstance.getAllExtensionPoints.mockResolvedValue({ body: dataMocks.allExtensionPoints })
+  mockConsoleSDKInstance.getDevTerms.mockResolvedValue({ body: { tc: [{ text: 'some dev terms', locale: 'en' }] } })
+  mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: true } })
+  mockConsoleSDKInstance.acceptOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: true } })
 }
 
 // mock prompts
@@ -1009,5 +1015,32 @@ describe('instance methods tests', () => {
     expect(mockConsoleSDKInstance.updateEndPointsInWorkspace).toHaveBeenCalled()
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+  test('getDevTermsForOrg', async () => {
+    const res = await consoleCli.getDevTermsForOrg()
+    expect(mockConsoleSDKInstance.getDevTerms).toHaveBeenCalled()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+    expect(res).toEqual({ text: 'some dev terms', locale: 'en' })
+  })
+  test('acceptDevTermsForOrg', async () => {
+    const res = await consoleCli.acceptDevTermsForOrg()
+    expect(mockConsoleSDKInstance.acceptOrgDevTerms).toHaveBeenCalled()
+    expect(res).toEqual(true)
+  })
+  test('checkDevTermsForOrg, accepted', async () => {
+    const res = await consoleCli.checkDevTermsForOrg()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+    expect(mockConsoleSDKInstance.checkOrgDevTerms).toHaveBeenCalled()
+    expect(res).toEqual(true)
+  })
+  test('checkDevTermsForOrg, accepted = false', async () => {
+    mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: false } })
+    const res = await consoleCli.checkDevTermsForOrg()
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+    expect(mockConsoleSDKInstance.checkOrgDevTerms).toHaveBeenCalled()
+    expect(res).toEqual(false)
   })
 })

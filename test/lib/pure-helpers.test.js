@@ -30,6 +30,7 @@ test('exports', () => {
   expect(typeof helpers.getServiceSubscriptionsOperationPromptChoices).toBe('function')
   expect(typeof helpers.enhanceWorkspaceConfiguration).toBe('function')
   expect(typeof helpers.workspaceNamesToPromptString).toBe('function')
+  expect(typeof helpers.getDevTerms).toBe('function')
 })
 
 describe('orgsToPromptChoices', () => {
@@ -325,4 +326,22 @@ test('removeExtensionPoints', () => {
   }
   expect(helpers.removeExtensionPoints(dataMocks.multipleWorkspaceEndPoints, toBeRemoved))
     .toEqual(expectedResults)
+})
+
+describe('getDevTerms', () => {
+  test('validPayload', () => {
+    const payLoad = {
+      tc: [{
+        text: 'some text',
+        locale: 'en'
+      }]
+    }
+    const [expectedResult] = payLoad.tc
+    expect(helpers.getDevTerms(payLoad)).toEqual(expectedResult)
+  })
+  test('invalid', () => {
+    const payLoad = {}
+    const expectedResult = {}
+    expect(helpers.getDevTerms(payLoad)).toEqual(expectedResult)
+  })
 })
