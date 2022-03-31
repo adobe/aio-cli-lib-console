@@ -69,7 +69,7 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.multipleWorkspaceEndPoints })
   mockConsoleSDKInstance.getAllExtensionPoints.mockResolvedValue({ body: dataMocks.allExtensionPoints })
   mockConsoleSDKInstance.getDevTerms.mockResolvedValue({ body: { tc: [{ text: 'some dev terms', locale: 'en' }] } })
-  mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: true } })
+  mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: true } })
   mockConsoleSDKInstance.acceptOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: true } })
 }
 
@@ -1036,7 +1036,7 @@ describe('instance methods tests', () => {
     expect(res).toEqual(true)
   })
   test('checkDevTermsForOrg, accepted = false', async () => {
-    mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: false } })
+    mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: false } })
     const res = await consoleCli.checkDevTermsForOrg()
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
