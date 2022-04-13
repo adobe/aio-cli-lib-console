@@ -759,6 +759,7 @@ describe('instance methods tests', () => {
       )
       dataMocks.integration.serviceProperties.forEach((s, i) => {
         if (s.licenseConfigs) {
+          // eslint-disable-next-line jest/no-conditional-expect
           expect(mockPrompt.promptMultiSelect).toHaveBeenCalledWith(
             `Select Product Profiles for the service '${s.name}'`,
             dataMocks.promptChoices.licenseConfigs[i],
