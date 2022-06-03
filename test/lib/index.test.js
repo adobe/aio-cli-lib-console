@@ -116,13 +116,16 @@ function resetMockOraObject () {
 jest.mock('@adobe/aio-cli-plugin-certificate')
 const certPlugin = require('@adobe/aio-cli-plugin-certificate')
 certPlugin.generate = jest.fn()
+certPlugin.fingerprint = jest.fn()
 /** @private */
 function resetMockCertPlugin () {
   certPlugin.generate.mockReset()
+  certPlugin.fingerprint.mockReset()
 }
 /** @private */
 function setDefaultMockCertPlugin () {
   certPlugin.generate.mockReturnValue({ cert: 'fake public key', privateKey: 'fake private key' })
+  certPlugin.fingerprint.mockReturnValue({ certificateFingerprint: 'fake fingerprint' })
 }
 
 // mock fs
@@ -186,6 +189,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getServicePropertiesFromWorkspace).toBe('function')
   expect(typeof consoleCli.getWorkspaceConfig).toBe('function')
   expect(typeof consoleCli.getBindingsForWorkspace).toBe('function')
+  expect(typeof consoleCli.getCertificateFingerprint).toBe('function')
   // wr console api methods
   expect(typeof consoleCli.subscribeToServices).toBe('function')
   expect(typeof consoleCli.createEnterpriseCredentials).toBe('function')
@@ -1060,10 +1064,79 @@ describe('instance methods tests', () => {
     expect(mockConsoleSDKInstance.checkOrgDevTerms).toHaveBeenCalled()
     expect(res).toEqual(false)
   })
-  test('getBindingsForWorkspace', async () => {
-    mockConsoleSDKInstance.getBindingsForIntegration.mockResolvedValue({ body: [] })
-    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [{ id_integration: 'testIntId' }] })
+  test('getBindingsForWorkspaceNoCredential', async () => {
+    const binding = {
+      bindingId: '827514',
+      certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
+      notAfter: 1685806325000
+    }
+    mockConsoleSDKInstance.getBindingsForIntegration.mockResolvedValue({ body: [binding] })
+    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
     const res = await consoleCli.getBindingsForWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' })
     expect(res).toEqual([])
+  })
+  test('getBindingsForWorkspace', async () => {
+    const binding = {
+      bindingId: '827514',
+      certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
+      notAfter: 1685806325000
+    }
+    mockConsoleSDKInstance.getBindingsForIntegration.mockResolvedValue({ body: [binding] })
+    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [{ id_integration: 'testIntId', flow_type: 'entp', integration_type: 'service' }] })
+    const res = await consoleCli.getBindingsForWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' })
+    expect(res).toEqual([binding])
+  })
+  test('getCertificateFingerprint', async () => {
+    const res = await consoleCli.getCertificateFingerprint('fake pem')
+    expect(res).toEqual({ certificateFingerprint: 'fake fingerprint' })
+  })
+  test('deleteBindingFromWorkspaceNoCredential', async () => {
+    const binding = {
+      bindingId: '827514',
+      certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
+      notAfter: 1685806325000
+    }
+    mockConsoleSDKInstance.getBindingsForIntegration.mockResolvedValue({ body: [binding] })
+    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+    mockConsoleSDKInstance.deleteBinding.mockResolvedValue({ body: undefined, status: 200 })
+    const res = await consoleCli.deleteBindingFromWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' }, binding)
+    expect(res).toBe(false)
+  })
+  test('deleteBindingFromWorkspace', async () => {
+    const binding = {
+      bindingId: '827514',
+      certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
+      notAfter: 1685806325000
+    }
+    mockConsoleSDKInstance.getBindingsForIntegration.mockResolvedValue({ body: [binding] })
+    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [{ id_integration: 'testIntId', flow_type: 'entp', integration_type: 'service' }] })
+    mockConsoleSDKInstance.deleteBinding.mockResolvedValue({ body: undefined, status: 200 })
+    const res = await consoleCli.deleteBindingFromWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' }, binding)
+    expect(res).toBe(true)
+    mockConsoleSDKInstance.deleteBinding.mockResolvedValue({ body: undefined, status: 404 })
+    const res2 = await consoleCli.deleteBindingFromWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' }, binding)
+    expect(res2).toBe(false)
+  })
+  test('uploadAndBindCertificateNoCredential', async () => {
+    const binding = {
+      bindingId: '827514',
+      certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
+      notAfter: 1685806325000
+    }
+    mockConsoleSDKInstance.uploadAndBindCertificate.mockResolvedValue({ body: [binding] })
+    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+    const res = await consoleCli.uploadAndBindCertificate('testOrg', { id: 'testPrj' }, { id: 'testWS' })
+    expect(res).toEqual([])
+  })
+  test('uploadAndBindCertificate', async () => {
+    const binding = {
+      bindingId: '827514',
+      certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
+      notAfter: 1685806325000
+    }
+    mockConsoleSDKInstance.uploadAndBindCertificate.mockResolvedValue({ body: [binding] })
+    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [{ id_integration: 'testIntId', flow_type: 'entp', integration_type: 'service' }] })
+    const res = await consoleCli.uploadAndBindCertificate('testOrg', { id: 'testPrj' }, { id: 'testWS' })
+    expect(res).toEqual([binding])
   })
 })
