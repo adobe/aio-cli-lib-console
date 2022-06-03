@@ -37,7 +37,10 @@ const mockConsoleSDKInstance = {
   getAllExtensionPoints: jest.fn(),
   checkOrgDevTerms: jest.fn(),
   getDevTerms: jest.fn(),
-  acceptOrgDevTerms: jest.fn()
+  acceptOrgDevTerms: jest.fn(),
+  getBindingsForIntegration: jest.fn(),
+  uploadAndBindCertificate: jest.fn(),
+  deleteBinding: jest.fn()
 }
 consoleSDK.init.mockResolvedValue(mockConsoleSDKInstance)
 /** @private */
@@ -71,6 +74,8 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getDevTerms.mockResolvedValue({ body: { tc: [{ text: 'some dev terms', locale: 'en' }] } })
   mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: true } })
   mockConsoleSDKInstance.acceptOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: true } })
+  mockConsoleSDKInstance.getBindingsForIntegration.mockResolvedValue({ body: [] })
+  mockConsoleSDKInstance.uploadAndBindCertificate.mockResolvedValue({ body: {} })
 }
 
 // mock prompts
@@ -180,11 +185,14 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getWorkspaces).toBe('function')
   expect(typeof consoleCli.getServicePropertiesFromWorkspace).toBe('function')
   expect(typeof consoleCli.getWorkspaceConfig).toBe('function')
+  expect(typeof consoleCli.getBindingsForWorkspace).toBe('function')
   // wr console api methods
   expect(typeof consoleCli.subscribeToServices).toBe('function')
   expect(typeof consoleCli.createEnterpriseCredentials).toBe('function')
   expect(typeof consoleCli.createProject).toBe('function')
   expect(typeof consoleCli.createWorkspace).toBe('function')
+  expect(typeof consoleCli.uploadAndBindCertificate).toBe('function')
+  expect(typeof consoleCli.deleteBindingFromWorkspace).toBe('function')
   // prompt methods
   expect(typeof consoleCli.promptForSelectServiceProperties).toBe('function')
   expect(typeof consoleCli.promptForServiceSubscriptionsOperation).toBe('function')
@@ -1051,5 +1059,11 @@ describe('instance methods tests', () => {
     expect(mockOraObject.stop).toHaveBeenCalled()
     expect(mockConsoleSDKInstance.checkOrgDevTerms).toHaveBeenCalled()
     expect(res).toEqual(false)
+  })
+  test('getBindingsForWorkspace', async () => {
+    mockConsoleSDKInstance.getBindingsForIntegration.mockResolvedValue({ body: [] })
+    mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [{ id_integration: 'testIntId' }] })
+    const res = await consoleCli.getBindingsForWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' })
+    expect(res).toEqual([])
   })
 })
