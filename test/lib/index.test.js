@@ -195,7 +195,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.createEnterpriseCredentials).toBe('function')
   expect(typeof consoleCli.createProject).toBe('function')
   expect(typeof consoleCli.createWorkspace).toBe('function')
-  expect(typeof consoleCli.uploadAndBindCertificate).toBe('function')
+  expect(typeof consoleCli.uploadAndBindCertificateToWorkspace).toBe('function')
   expect(typeof consoleCli.deleteBindingFromWorkspace).toBe('function')
   // prompt methods
   expect(typeof consoleCli.promptForSelectServiceProperties).toBe('function')
@@ -1117,7 +1117,7 @@ describe('instance methods tests', () => {
     const res2 = await consoleCli.deleteBindingFromWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' }, binding)
     expect(res2).toBe(false)
   })
-  test('uploadAndBindCertificateNoCredential', async () => {
+  test('uploadAndBindCertificateToWorkspaceNoCredential', async () => {
     const binding = {
       bindingId: '827514',
       certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
@@ -1125,10 +1125,10 @@ describe('instance methods tests', () => {
     }
     mockConsoleSDKInstance.uploadAndBindCertificate.mockResolvedValue({ body: [binding] })
     mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
-    const res = await consoleCli.uploadAndBindCertificate('testOrg', { id: 'testPrj' }, { id: 'testWS' })
+    const res = await consoleCli.uploadAndBindCertificateToWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' })
     expect(res).toEqual([])
   })
-  test('uploadAndBindCertificate', async () => {
+  test('uploadAndBindCertificateToWorkspace', async () => {
     const binding = {
       bindingId: '827514',
       certificateFingerprint: '38f65e26bd3869ec3ca029cc0b3df98de29172b9',
@@ -1136,7 +1136,7 @@ describe('instance methods tests', () => {
     }
     mockConsoleSDKInstance.uploadAndBindCertificate.mockResolvedValue({ body: [binding] })
     mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [{ id_integration: 'testIntId', flow_type: 'entp', integration_type: 'service' }] })
-    const res = await consoleCli.uploadAndBindCertificate('testOrg', { id: 'testPrj' }, { id: 'testWS' })
+    const res = await consoleCli.uploadAndBindCertificateToWorkspace('testOrg', { id: 'testPrj' }, { id: 'testWS' })
     expect(res).toEqual([binding])
   })
 })
