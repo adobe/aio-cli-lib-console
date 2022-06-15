@@ -42,7 +42,7 @@
     "typescript": "^4.5.2"
   },
   "dependencies": {
-    "@adobe/aio-cli-plugin-certificate": "^0.3.1",
+    "@adobe/aio-cli-plugin-certificate": "^0.4.0",
     "@adobe/aio-lib-console": "^3.2.0",
     "@adobe/aio-lib-core-logging": "^1.2.0",
     "fs-extra": "^10",
