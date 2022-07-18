@@ -187,6 +187,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getFirstEntpCredentials).toBe('function')
   expect(typeof consoleCli.getOrganizations).toBe('function')
   expect(typeof consoleCli.getProjects).toBe('function')
+  expect(typeof consoleCli.getProject).toBe('function')
   expect(typeof consoleCli.getApplicationExtensions).toBe('function')
   expect(typeof consoleCli.getWorkspaces).toBe('function')
   expect(typeof consoleCli.getServicePropertiesFromWorkspace).toBe('function')
@@ -231,6 +232,14 @@ describe('instance methods tests', () => {
     const projects = await consoleCli.getProjects('orgid')
     expect(projects).toEqual(dataMocks.projects)
     expect(mockConsoleSDKInstance.getProjectsForOrg).toHaveBeenCalledWith('orgid')
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('getProject', async () => {
+    const project = await consoleCli.getProject('orgid', dataMocks.project.id)
+    expect(project).toEqual(dataMocks.project)
+    expect(mockConsoleSDKInstance.getProject).toHaveBeenCalledWith('orgid', dataMocks.project.id)
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
   })
