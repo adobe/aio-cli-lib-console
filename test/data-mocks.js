@@ -526,6 +526,82 @@ const allExtensionPoints = [
   }
 ]
 
+const applicationExtensions = {
+  data: [
+    {
+      appId: 'appid',
+      name: 'name',
+      title: 'title',
+      publisherId: 'publisherId',
+      status: 'PUBLISHED',
+      isPrivate: null,
+      description: 'description',
+      version: null,
+      workspaces: [
+        {
+          id: 'id1',
+          name: 'Production'
+        },
+        {
+          id: 'id2',
+          name: 'Stage'
+        }
+      ],
+      lifecycle: {
+        created: {
+          by: {
+            guid: 'guid@AdobeID'
+          },
+          notes: null,
+          on: '2022-06-10T20:19:29.997+0000'
+        },
+        lastModified: {
+          by: {
+            guid: 'guid@AdobeID'
+          },
+          notes: null,
+          on: '2022-07-13T18:11:55.963+0000'
+        },
+        submitted: {
+          by: {
+            guid: 'guid@AdobeID'
+          },
+          notes: 'notes',
+          on: '2022-06-10T20:35:28.085+0000'
+        },
+        reviewed: {
+          by: {
+            guid: 'guid@AdobeID'
+          },
+          notes: 'notes',
+          on: '2022-07-13T18:11:55.745+0000'
+        },
+        published: {
+          by: {
+            guid: 'guid@AdobeID'
+          },
+          notes: null,
+          on: '2022-07-13T18:11:55.963+0000'
+        }
+      },
+      support: {
+        email: 'person@adobe.com',
+        contact: null,
+        website: null
+      },
+      icon: {
+        id: 'id',
+        name: 'name.png',
+        width: '512',
+        height: '512',
+        size: '50383',
+        link: 'link'
+      },
+      media: null
+    }
+  ]
+}
+
 module.exports = {
   organizations,
   projects,
@@ -545,5 +621,6 @@ module.exports = {
   subscribeServicesPayload,
   promptChoices,
   baseWorkspaceEndPoints,
-  multipleWorkspaceEndPoints
+  multipleWorkspaceEndPoints,
+  applicationExtensions
 }
