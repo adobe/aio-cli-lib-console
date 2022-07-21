@@ -35,6 +35,7 @@ const mockConsoleSDKInstance = {
   getEndPointsInWorkspace: jest.fn(),
   updateEndPointsInWorkspace: jest.fn(),
   getAllExtensionPoints: jest.fn(),
+  getApplicationExtensions: jest.fn(),
   checkOrgDevTerms: jest.fn(),
   getDevTerms: jest.fn(),
   acceptOrgDevTerms: jest.fn(),
@@ -71,6 +72,7 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.baseWorkspaceEndPoints })
   mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.multipleWorkspaceEndPoints })
   mockConsoleSDKInstance.getAllExtensionPoints.mockResolvedValue({ body: dataMocks.allExtensionPoints })
+  mockConsoleSDKInstance.getApplicationExtensions.mockResolvedValue({ body: dataMocks.applicationExtensions })
   mockConsoleSDKInstance.getDevTerms.mockResolvedValue({ body: { tc: [{ text: 'some dev terms', locale: 'en' }] } })
   mockConsoleSDKInstance.checkOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: true } })
   mockConsoleSDKInstance.acceptOrgDevTerms.mockResolvedValue({ body: { accepted: true, current: true } })
@@ -185,6 +187,8 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getFirstEntpCredentials).toBe('function')
   expect(typeof consoleCli.getOrganizations).toBe('function')
   expect(typeof consoleCli.getProjects).toBe('function')
+  expect(typeof consoleCli.getProject).toBe('function')
+  expect(typeof consoleCli.getApplicationExtensions).toBe('function')
   expect(typeof consoleCli.getWorkspaces).toBe('function')
   expect(typeof consoleCli.getServicePropertiesFromWorkspace).toBe('function')
   expect(typeof consoleCli.getWorkspaceConfig).toBe('function')
@@ -228,6 +232,22 @@ describe('instance methods tests', () => {
     const projects = await consoleCli.getProjects('orgid')
     expect(projects).toEqual(dataMocks.projects)
     expect(mockConsoleSDKInstance.getProjectsForOrg).toHaveBeenCalledWith('orgid')
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('getProject', async () => {
+    const project = await consoleCli.getProject('orgid', dataMocks.project.id)
+    expect(project).toEqual(dataMocks.project)
+    expect(mockConsoleSDKInstance.getProject).toHaveBeenCalledWith('orgid', dataMocks.project.id)
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('getApplicationExtensions', async () => {
+    const applicationExtensions = await consoleCli.getApplicationExtensions('orgid', 'appid')
+    expect(applicationExtensions).toEqual(dataMocks.applicationExtensions.data)
+    expect(mockConsoleSDKInstance.getApplicationExtensions).toHaveBeenCalledWith('orgid', 'appid')
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
   })
