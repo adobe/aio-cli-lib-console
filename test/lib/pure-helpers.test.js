@@ -20,6 +20,7 @@ test('exports', () => {
   expect(typeof helpers.licenseConfigsToPromptChoices).toBe('function')
   expect(typeof helpers.filterEnabledServices).toBe('function')
   expect(typeof helpers.findFirstEntpCredential).toBe('function')
+  expect(typeof helpers.findFirstOAuthServerToServerCredential).toBe('function')
   expect(typeof helpers.servicePropertiesToNames).toBe('function')
   expect(typeof helpers.fixServiceProperties).toBe('function')
   expect(typeof helpers.servicePropertiesToServiceSubscriptionPayload).toBe('function')
@@ -82,6 +83,16 @@ describe('findFirstEntpCredential', () => {
   })
   test('when there is none', () => {
     expect(helpers.findFirstEntpCredential([])).toEqual(undefined)
+  })
+})
+
+describe('findFirstOAuthServerToServerCredential', () => {
+  test('when there is one', () => {
+    expect(helpers.findFirstOAuthServerToServerCredential(dataMocks.integrations))
+      .toEqual(dataMocks.integrations[4])
+  })
+  test('when there is none', () => {
+    expect(helpers.findFirstOAuthServerToServerCredential([])).toEqual(undefined)
   })
 })
 

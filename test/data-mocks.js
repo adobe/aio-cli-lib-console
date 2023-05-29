@@ -378,6 +378,18 @@ const integrations = [
     id_workspace: workspace.id,
     integration_type: 'service',
     flow_type: 'entp'
+  },
+  {
+    id_integration: '44444',
+    id_workspace: workspace.id,
+    integration_type: 'oauth_server_to_server',
+    flow_type: 'entp'
+  },
+  {
+    id_integration: '55555',
+    id_workspace: workspace.id,
+    integration_type: 'oauth_server_to_server',
+    flow_type: 'entp'
   }
 ]
 
