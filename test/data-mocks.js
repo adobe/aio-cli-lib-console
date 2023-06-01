@@ -394,8 +394,28 @@ const integrations = [
 ]
 
 // as returned by getIntegration
-const integration = {
+const integration = { // first jwt integration
   id: '222222',
+  orgId: org.id,
+  apiKey: '1111111111111111111abcde',
+  name: 'aio-' + workspace.name,
+  description: 'Auto generated enterprise credentials from aio CLI',
+  status: 'ENABLED',
+  type: 'entp',
+  production: true,
+  createdDate: 1222111600000,
+  lastModifiedDate: 1222111777000,
+  namespaceEnabled: false,
+  technicalAccountId: 'some@techacct.adobe.com',
+  technicalAccountEmail: 'some222222@techacct.adobe.com',
+  serviceProperties,
+  readOnly: false,
+  technicalAcctId: 'some@techacct.adobe.com',
+  sdkList: [services[0].code, services[1].code, services[2].code]
+}
+
+const integrationOAuthServerToServer = { // first oauth server-to-server integration
+  id: '44444',
   orgId: org.id,
   apiKey: '1111111111111111111abcde',
   name: 'aio-' + workspace.name,
@@ -442,6 +462,13 @@ const integrationCreateResponse = {
   technicalAccountId: integration.technicalAccountId
 }
 
+const integrationCreateResponseOAuthServerToServer = {
+  id: integrationOAuthServerToServer.id,
+  apiKey: integrationOAuthServerToServer.apiKey,
+  orgId: integrationOAuthServerToServer.orgId,
+  technicalAccountId: integrationOAuthServerToServer.technicalAccountId
+}
+
 // payload based on serviceProperties
 const subscribeServicesPayload = [
   {
@@ -468,6 +495,10 @@ const subscribeServicesPayload = [
 
 const subscribeServicesResponse = {
   sdkList: integration.sdkList
+}
+
+const subscribeServicesResponseOAuthServerToServer = {
+  sdkList: integrationOAuthServerToServer.sdkList
 }
 
 // expected prompt choices, based on data above and filters
@@ -623,13 +654,16 @@ module.exports = {
   workspace,
   integrations,
   integration,
+  integrationOAuthServerToServer,
   serviceProperties,
   services,
   workspaceJson,
   enhancedWorkspaceJson,
   enabledServices,
   integrationCreateResponse,
+  integrationCreateResponseOAuthServerToServer,
   subscribeServicesResponse,
+  subscribeServicesResponseOAuthServerToServer,
   subscribeServicesPayload,
   promptChoices,
   baseWorkspaceEndPoints,

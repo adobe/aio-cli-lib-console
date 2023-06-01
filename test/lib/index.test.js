@@ -69,7 +69,7 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getSDKProperties.mockResolvedValue({ body: {} })
   mockConsoleSDKInstance.getIntegration.mockResolvedValue({ body: dataMocks.integration })
   mockConsoleSDKInstance.createEnterpriseCredential.mockResolvedValue({ body: dataMocks.integrationCreateResponse })
-  mockConsoleSDKInstance.createOAuthServerToServerCredential.mockResolvedValue({ body: dataMocks.integrationCreateResponse })
+  mockConsoleSDKInstance.createOAuthServerToServerCredential.mockResolvedValue({ body: dataMocks.integrationCreateResponseOAuthServerToServer })
   mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: dataMocks.integrations })
   mockConsoleSDKInstance.getEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.baseWorkspaceEndPoints })
   mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.multipleWorkspaceEndPoints })
@@ -340,7 +340,7 @@ describe('instance methods tests', () => {
         dataMocks.project.id,
         dataMocks.workspace.id
       )
-      expect(mockConsoleSDKInstance.createEnterpriseCredential).toHaveBeenCalled()
+      expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
       expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
       expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
         dataMocks.org.id,
@@ -361,20 +361,20 @@ describe('instance methods tests', () => {
         credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
         serviceProperties: dataMocks.serviceProperties
       })
-      expect(ret).toEqual(dataMocks.subscribeServicesResponse)
+      expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
       expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace.id
       )
-      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).toHaveBeenCalled()
       expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
       expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace.id,
-        dataMocks.integration.type,
-        dataMocks.integration.id,
+        dataMocks.integrationOAuthServerToServer.type,
+        dataMocks.integrationOAuthServerToServer.id,
         dataMocks.subscribeServicesPayload
       )
     })
@@ -422,7 +422,7 @@ describe('instance methods tests', () => {
         credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
         serviceProperties: dataMocks.serviceProperties
       })
-      expect(ret).toEqual(dataMocks.subscribeServicesResponse)
+      expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
       expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
         dataMocks.org.id,
         dataMocks.project.id,
@@ -441,8 +441,8 @@ describe('instance methods tests', () => {
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace.id,
-        dataMocks.integration.type,
-        dataMocks.integration.id,
+        dataMocks.integrationOAuthServerToServer.type,
+        dataMocks.integrationOAuthServerToServer.id,
         dataMocks.subscribeServicesPayload
       )
     })
@@ -456,6 +456,16 @@ describe('instance methods tests', () => {
         dataMocks.project.id,
         dataMocks.workspace,
         dataMocks.services
+      )
+      expect(ret).toEqual([])
+      expect(mockConsoleSDKInstance.getIntegration).not.toHaveBeenCalled()
+    })
+    test('no integration in workspace (no services)', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+      const ret = await consoleCli.getServicePropertiesFromWorkspace(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
       )
       expect(ret).toEqual([])
       expect(mockConsoleSDKInstance.getIntegration).not.toHaveBeenCalled()
