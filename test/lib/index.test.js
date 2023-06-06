@@ -31,6 +31,7 @@ const mockConsoleSDKInstance = {
   getSDKProperties: jest.fn(),
   getIntegration: jest.fn(),
   createEnterpriseCredential: jest.fn(),
+  createOAuthServerToServerCredential: jest.fn(),
   getCredentials: jest.fn(),
   getEndPointsInWorkspace: jest.fn(),
   updateEndPointsInWorkspace: jest.fn(),
@@ -47,7 +48,7 @@ consoleSDK.init.mockResolvedValue(mockConsoleSDKInstance)
 /** @private */
 function resetMockConsoleSDK () {
   Object.keys(mockConsoleSDKInstance).forEach(
-    k => mockConsoleSDKInstance[k].mockReset()
+    k => mockConsoleSDKInstance[k].mockClear()
   )
   consoleSDK.init.mockClear()
 }
@@ -68,6 +69,7 @@ function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getSDKProperties.mockResolvedValue({ body: {} })
   mockConsoleSDKInstance.getIntegration.mockResolvedValue({ body: dataMocks.integration })
   mockConsoleSDKInstance.createEnterpriseCredential.mockResolvedValue({ body: dataMocks.integrationCreateResponse })
+  mockConsoleSDKInstance.createOAuthServerToServerCredential.mockResolvedValue({ body: dataMocks.integrationCreateResponseOAuthServerToServer })
   mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: dataMocks.integrations })
   mockConsoleSDKInstance.getEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.baseWorkspaceEndPoints })
   mockConsoleSDKInstance.updateEndPointsInWorkspace.mockResolvedValue({ body: dataMocks.multipleWorkspaceEndPoints })
@@ -185,18 +187,22 @@ test('instance methods definitions', async () => {
   // rd console api methods
   expect(typeof consoleCli.getEnabledServicesForOrg).toBe('function')
   expect(typeof consoleCli.getFirstEntpCredentials).toBe('function')
+  expect(typeof consoleCli.getFirstOAuthServerToServerCredentials).toBe('function')
   expect(typeof consoleCli.getOrganizations).toBe('function')
   expect(typeof consoleCli.getProjects).toBe('function')
   expect(typeof consoleCli.getProject).toBe('function')
   expect(typeof consoleCli.getApplicationExtensions).toBe('function')
   expect(typeof consoleCli.getWorkspaces).toBe('function')
   expect(typeof consoleCli.getServicePropertiesFromWorkspace).toBe('function')
+  expect(typeof consoleCli.getServicePropertiesFromWorkspaceWithCredentialType).toBe('function')
   expect(typeof consoleCli.getWorkspaceConfig).toBe('function')
   expect(typeof consoleCli.getBindingsForWorkspace).toBe('function')
   expect(typeof consoleCli.getCertificateFingerprint).toBe('function')
   // wr console api methods
   expect(typeof consoleCli.subscribeToServices).toBe('function')
+  expect(typeof consoleCli.subscribeToServicesWithCredentialType).toBe('function')
   expect(typeof consoleCli.createEnterpriseCredentials).toBe('function')
+  expect(typeof consoleCli.createOAuthServerToServerCredentials).toBe('function')
   expect(typeof consoleCli.createProject).toBe('function')
   expect(typeof consoleCli.createWorkspace).toBe('function')
   expect(typeof consoleCli.uploadAndBindCertificateToWorkspace).toBe('function')
@@ -318,8 +324,8 @@ describe('instance methods tests', () => {
     )
   })
 
-  describe('subscribeToServices', () => {
-    test('services to be added and no integration to be created', async () => {
+  describe('subscribeToServicesWithCredentialType', () => {
+    test('(jwt) services to be added and no integration to be created', async () => {
       // default mock of getCredentials returns the existing integration
       const ret = await consoleCli.subscribeToServices(
         dataMocks.org.id,
@@ -335,6 +341,7 @@ describe('instance methods tests', () => {
         dataMocks.workspace.id
       )
       expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
       expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
         dataMocks.org.id,
         dataMocks.project.id,
@@ -344,7 +351,35 @@ describe('instance methods tests', () => {
         dataMocks.subscribeServicesPayload
       )
     })
-    test('services to be added and integration to be created', async () => {
+
+    test('(oauth-server-to-server) services to be added and no integration to be created', async () => {
+      // default mock of getCredentials returns the existing integration
+      const ret = await consoleCli.subscribeToServicesWithCredentialType({
+        orgId: dataMocks.org.id,
+        project: dataMocks.project,
+        workspace: dataMocks.workspace,
+        credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
+        serviceProperties: dataMocks.serviceProperties
+      })
+      expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+      expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
+      expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id,
+        dataMocks.integrationOAuthServerToServer.type,
+        dataMocks.integrationOAuthServerToServer.id,
+        dataMocks.subscribeServicesPayload
+      )
+    })
+
+    test('(jwt) services to be added and integration to be created', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
       const ret = await consoleCli.subscribeToServices(
         dataMocks.org.id,
@@ -359,6 +394,7 @@ describe('instance methods tests', () => {
         dataMocks.project.id,
         dataMocks.workspace.id
       )
+      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
       expect(mockConsoleSDKInstance.createEnterpriseCredential).toHaveBeenCalledWith(
         dataMocks.org.id,
         dataMocks.project.id,
@@ -376,19 +412,78 @@ describe('instance methods tests', () => {
         dataMocks.subscribeServicesPayload
       )
     })
+
+    test('(oauth-server-to-server) services to be added and integration to be created', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+      const ret = await consoleCli.subscribeToServicesWithCredentialType({
+        orgId: dataMocks.org.id,
+        project: dataMocks.project,
+        workspace: dataMocks.workspace,
+        credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
+        serviceProperties: dataMocks.serviceProperties
+      })
+      expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+
+      expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id,
+        `aio-${dataMocks.workspace.id}`,
+        'Auto generated enterprise credentials from aio CLI'
+      )
+      expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id,
+        dataMocks.integrationOAuthServerToServer.type,
+        dataMocks.integrationOAuthServerToServer.id,
+        dataMocks.subscribeServicesPayload
+      )
+    })
   })
+
   describe('getServicesProperties', () => {
     test('no integration in workspace', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
       const ret = await consoleCli.getServicePropertiesFromWorkspace(
         dataMocks.org.id,
         dataMocks.project.id,
-        dataMocks.workspace.id,
+        dataMocks.workspace,
         dataMocks.services
       )
       expect(ret).toEqual([])
       expect(mockConsoleSDKInstance.getIntegration).not.toHaveBeenCalled()
     })
+    test('no integration in workspace (no services)', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+      const ret = await consoleCli.getServicePropertiesFromWorkspace(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
+      )
+      expect(ret).toEqual([])
+      expect(mockConsoleSDKInstance.getIntegration).not.toHaveBeenCalled()
+    })
+    test('(oauth-server-to-server) no integration in workspace', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+      const ret = await consoleCli.getServicePropertiesFromWorkspaceWithCredentialType({
+        orgId: dataMocks.org.id,
+        projectId: dataMocks.project.id,
+        workspace: dataMocks.workspace,
+        supportedServices: dataMocks.services,
+        credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL
+      }
+      )
+      expect(ret).toEqual([])
+      expect(mockConsoleSDKInstance.getIntegration).not.toHaveBeenCalled()
+    })
+
     test('no services attached to integration in workspace', async () => {
       mockConsoleSDKInstance.getIntegration.mockResolvedValue({ body: { serviceProperties: [] } })
       const ret = await consoleCli.getServicePropertiesFromWorkspace(
