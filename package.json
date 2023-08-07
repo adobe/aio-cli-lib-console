@@ -36,7 +36,7 @@
     "eslint-plugin-jest": "^23",
     "eslint-plugin-jsdoc": "^37",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-n": "^15",
+    "eslint-plugin-n": "^16",
     "eslint-plugin-promise": "^6",
     "jest": "^29",
     "typescript": "^5.0.4"
