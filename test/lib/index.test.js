@@ -42,7 +42,9 @@ const mockConsoleSDKInstance = {
   acceptOrgDevTerms: jest.fn(),
   getBindingsForIntegration: jest.fn(),
   uploadAndBindCertificate: jest.fn(),
-  deleteBinding: jest.fn()
+  deleteBinding: jest.fn(),
+  getFirstOAuthServerToServerCredentials: jest.fn(),
+  getFirstEntpCredentials: jest.fn()
 }
 consoleSDK.init.mockResolvedValue(mockConsoleSDKInstance)
 /** @private */
@@ -605,6 +607,53 @@ describe('instance methods tests', () => {
     test('when there are none', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
       const ret = await consoleCli.getFirstEntpCredentials(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
+      )
+      expect(ret).toEqual(undefined)
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+    })
+  })
+
+  describe('getWorkspaceCreds', () => {
+    test('returns OAuth credentials when available', async () => {
+      mockConsoleSDKInstance.getFirstOAuthServerToServerCredentials.mockResolvedValue(dataMocks.integrations[4])
+      const ret = await consoleCli.getWorkspaceCreds(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
+      )
+      expect(ret).toEqual(dataMocks.integrations[4])
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+      expect(mockConsoleSDKInstance.getFirstEntpCredentials).not.toHaveBeenCalled()
+    })
+    test('returns JWT credentials when OAuth credentials are not available', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue(dataMocks.integrations[2])
+      const ret = await consoleCli.getWorkspaceCreds(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
+      )
+      expect(ret).toEqual(dataMocks.integrations[2])
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+      expect(mockConsoleSDKInstance.getFirstOAuthServerToServerCredentials).not.toHaveBeenCalled()
+    })
+    test('returns undefined when no credentials are available', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+      const ret = await consoleCli.getWorkspaceCreds(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
