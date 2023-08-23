@@ -42,9 +42,7 @@ const mockConsoleSDKInstance = {
   acceptOrgDevTerms: jest.fn(),
   getBindingsForIntegration: jest.fn(),
   uploadAndBindCertificate: jest.fn(),
-  deleteBinding: jest.fn(),
-  getFirstOAuthServerToServerCredentials: jest.fn(),
-  getFirstEntpCredentials: jest.fn()
+  deleteBinding: jest.fn()
 }
 consoleSDK.init.mockResolvedValue(mockConsoleSDKInstance)
 /** @private */
@@ -620,10 +618,9 @@ describe('instance methods tests', () => {
     })
   })
 
-  describe('getWorkspaceCreds', () => {
+  describe('getWorkspaceCredential', () => {
     test('returns OAuth credentials when available', async () => {
-      mockConsoleSDKInstance.getFirstOAuthServerToServerCredentials.mockResolvedValue(dataMocks.integrations[4])
-      const ret = await consoleCli.getWorkspaceCreds(
+      const ret = await consoleCli.getWorkspaceCredential(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
@@ -634,11 +631,10 @@ describe('instance methods tests', () => {
         dataMocks.project.id,
         dataMocks.workspace.id
       )
-      expect(mockConsoleSDKInstance.getFirstEntpCredentials).not.toHaveBeenCalled()
     })
     test('returns JWT credentials when OAuth credentials are not available', async () => {
-      mockConsoleSDKInstance.getCredentials.mockResolvedValue(dataMocks.integrations[2])
-      const ret = await consoleCli.getWorkspaceCreds(
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: dataMocks.integrations.slice(0, 3) })
+      const ret = await consoleCli.getWorkspaceCredential(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
@@ -649,11 +645,10 @@ describe('instance methods tests', () => {
         dataMocks.project.id,
         dataMocks.workspace.id
       )
-      expect(mockConsoleSDKInstance.getFirstOAuthServerToServerCredentials).not.toHaveBeenCalled()
     })
     test('returns undefined when no credentials are available', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
-      const ret = await consoleCli.getWorkspaceCreds(
+      const ret = await consoleCli.getWorkspaceCredential(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
