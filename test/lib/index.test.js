@@ -198,6 +198,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getWorkspaceConfig).toBe('function')
   expect(typeof consoleCli.getBindingsForWorkspace).toBe('function')
   expect(typeof consoleCli.getCertificateFingerprint).toBe('function')
+  expect(typeof consoleCli.getFirstWorkspaceCredential).toBe('function')
   // wr console api methods
   expect(typeof consoleCli.subscribeToServices).toBe('function')
   expect(typeof consoleCli.subscribeToServicesWithCredentialType).toBe('function')
@@ -618,9 +619,9 @@ describe('instance methods tests', () => {
     })
   })
 
-  describe('getWorkspaceCredential', () => {
+  describe('getFirstWorkspaceCredential', () => {
     test('returns OAuth credentials when available', async () => {
-      const ret = await consoleCli.getWorkspaceCredential(
+      const ret = await consoleCli.getFirstWorkspaceCredential(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
@@ -634,7 +635,7 @@ describe('instance methods tests', () => {
     })
     test('returns JWT credentials when OAuth credentials are not available', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: dataMocks.integrations.slice(0, 3) })
-      const ret = await consoleCli.getWorkspaceCredential(
+      const ret = await consoleCli.getFirstWorkspaceCredential(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
@@ -648,7 +649,7 @@ describe('instance methods tests', () => {
     })
     test('returns undefined when no credentials are available', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
-      const ret = await consoleCli.getWorkspaceCredential(
+      const ret = await consoleCli.getFirstWorkspaceCredential(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
