@@ -198,6 +198,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getWorkspaceConfig).toBe('function')
   expect(typeof consoleCli.getBindingsForWorkspace).toBe('function')
   expect(typeof consoleCli.getCertificateFingerprint).toBe('function')
+  expect(typeof consoleCli.getFirstWorkspaceCredential).toBe('function')
   // wr console api methods
   expect(typeof consoleCli.subscribeToServices).toBe('function')
   expect(typeof consoleCli.subscribeToServicesWithCredentialType).toBe('function')
@@ -605,6 +606,50 @@ describe('instance methods tests', () => {
     test('when there are none', async () => {
       mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
       const ret = await consoleCli.getFirstEntpCredentials(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
+      )
+      expect(ret).toEqual(undefined)
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+    })
+  })
+
+  describe('getFirstWorkspaceCredential', () => {
+    test('returns OAuth credentials when available', async () => {
+      const ret = await consoleCli.getFirstWorkspaceCredential(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
+      )
+      expect(ret).toEqual(dataMocks.integrations[4])
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+    })
+    test('returns JWT credentials when OAuth credentials are not available', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: dataMocks.integrations.slice(0, 3) })
+      const ret = await consoleCli.getFirstWorkspaceCredential(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace
+      )
+      expect(ret).toEqual(dataMocks.integrations[2])
+      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+        dataMocks.org.id,
+        dataMocks.project.id,
+        dataMocks.workspace.id
+      )
+    })
+    test('returns undefined when no credentials are available', async () => {
+      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+      const ret = await consoleCli.getFirstWorkspaceCredential(
         dataMocks.org.id,
         dataMocks.project.id,
         dataMocks.workspace
