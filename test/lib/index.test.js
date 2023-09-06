@@ -326,126 +326,254 @@ describe('instance methods tests', () => {
   })
 
   describe('subscribeToServicesWithCredentialType', () => {
-    test('(jwt) services to be added and no integration to be created', async () => {
-      // default mock of getCredentials returns the existing integration
-      const ret = await consoleCli.subscribeToServices(
-        dataMocks.org.id,
-        dataMocks.project,
-        dataMocks.workspace,
-        'certdir',
-        dataMocks.serviceProperties
-      )
-      expect(ret).toEqual(dataMocks.subscribeServicesResponse)
-      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id
-      )
-      expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id,
-        dataMocks.integration.type,
-        dataMocks.integration.id,
-        dataMocks.subscribeServicesPayload
-      )
-    })
+    const orgId = 'org-123'
+    const projectId = 'project-456'
+    const workspaceId = 'workspace-789'
 
-    test('(oauth-server-to-server) services to be added and no integration to be created', async () => {
-      // default mock of getCredentials returns the existing integration
-      const ret = await consoleCli.subscribeToServicesWithCredentialType({
-        orgId: dataMocks.org.id,
-        project: dataMocks.project,
-        workspace: dataMocks.workspace,
-        credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
-        serviceProperties: dataMocks.serviceProperties
+    describe('both OAuth and JWT creds exist - no new creds created', () => {
+      // one oauths2s, and one jwt credential, don't create (Oauth has precedent, use OAuth)
+      const integrations = [
+        {
+          id_integration: '121212',
+          id_workspace: workspaceId,
+          integration_type: 'oauth_server_to_server',
+          flow_type: 'entp'
+        },
+        {
+          id_integration: '232323',
+          id_workspace: workspaceId,
+          integration_type: 'service',
+          flow_type: 'entp'
+        }
+      ]
+
+      beforeEach(() => {
+        mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: integrations })
       })
-      expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
-      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id
-      )
-      expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id,
-        dataMocks.integrationOAuthServerToServer.type,
-        dataMocks.integrationOAuthServerToServer.id,
-        dataMocks.subscribeServicesPayload
-      )
-    })
 
-    test('(jwt) services to be added and integration to be created', async () => {
-      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
-      const ret = await consoleCli.subscribeToServices(
-        dataMocks.org.id,
-        dataMocks.project,
-        dataMocks.workspace,
-        'certdir',
-        dataMocks.serviceProperties
-      )
-      expect(ret).toEqual(dataMocks.subscribeServicesResponse)
-      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id
-      )
-      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.createEnterpriseCredential).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id,
-        'fake read stream',
-        `aio-${dataMocks.workspace.id}`,
-        'Auto generated enterprise credentials from aio CLI'
-      )
-      expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id,
-        dataMocks.integration.type,
-        dataMocks.integration.id,
-        dataMocks.subscribeServicesPayload
-      )
-    })
-
-    test('(oauth-server-to-server) services to be added and integration to be created', async () => {
-      mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
-      const ret = await consoleCli.subscribeToServicesWithCredentialType({
-        orgId: dataMocks.org.id,
-        project: dataMocks.project,
-        workspace: dataMocks.workspace,
-        credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
-        serviceProperties: dataMocks.serviceProperties
+      test('select JWT, use existing OAuth (precedent)', async () => {
+        const ret = await consoleCli.subscribeToServices(
+          orgId,
+          { id: projectId },
+          { id: workspaceId },
+          'certdir',
+          dataMocks.serviceProperties
+        )
+        expect(ret).toEqual(dataMocks.subscribeServicesResponse)
+        expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId
+        )
+        expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+        expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
+        // since OAuth cred available, we use that cred
+        expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          integrations[0].flow_type,
+          integrations[0].id_integration,
+          dataMocks.subscribeServicesPayload
+        )
       })
-      expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
-      expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id
-      )
 
-      expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
-      expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id,
-        `aio-${dataMocks.workspace.id}`,
-        'Auto generated enterprise credentials from aio CLI'
-      )
-      expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
-        dataMocks.org.id,
-        dataMocks.project.id,
-        dataMocks.workspace.id,
-        dataMocks.integrationOAuthServerToServer.type,
-        dataMocks.integrationOAuthServerToServer.id,
-        dataMocks.subscribeServicesPayload
-      )
+      test('select OAuth, use existing OAuth (precedent)', async () => {
+        const ret = await consoleCli.subscribeToServicesWithCredentialType({
+          orgId,
+          project: { id: projectId },
+          workspace: { id: workspaceId },
+          credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
+          serviceProperties: dataMocks.serviceProperties
+        })
+        expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
+        expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId
+        )
+        expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+        expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
+        // existing OAuth creds take precedence
+        expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          integrations[0].flow_type,
+          integrations[0].id_integration,
+          dataMocks.subscribeServicesPayload
+        )
+      })
+    })
+
+    describe('only one JWT cred exists - no new creds created', () => {
+      // only one jwt credential
+      const integrations = [
+        {
+          id_integration: '232323',
+          id_workspace: dataMocks.workspace.id,
+          integration_type: 'service',
+          flow_type: 'entp'
+        }
+      ]
+
+      beforeEach(() => {
+        mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: integrations })
+      })
+
+      test('select JWT, use existing JWT', async () => {
+        const ret = await consoleCli.subscribeToServices(
+          orgId,
+          { id: projectId },
+          { id: workspaceId },
+          'certdir',
+          dataMocks.serviceProperties
+        )
+
+        expect(ret).toEqual(dataMocks.subscribeServicesResponse)
+        expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId
+        )
+        expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+        expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
+        // only JWT cred is available, we use that cred
+        expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          integrations[0].flow_type,
+          integrations[0].id_integration,
+          dataMocks.subscribeServicesPayload
+        )
+      })
+
+      test('select OAuth, use existing JWT', async () => {
+        const ret = await consoleCli.subscribeToServicesWithCredentialType({
+          orgId,
+          project: { id: projectId },
+          workspace: { id: workspaceId },
+          credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
+          serviceProperties: dataMocks.serviceProperties
+        })
+
+        expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
+        expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId
+        )
+        expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+        expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
+        // only JWT creds exist, use existing cred
+        expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          integrations[0].flow_type,
+          integrations[0].id_integration,
+          dataMocks.subscribeServicesPayload
+        )
+      })
+    })
+
+    describe('no credentials exist - will create', () => {
+      const jwtCredential = {
+        id_integration: '232323',
+        id_workspace: workspaceId,
+        integration_type: 'service',
+        flow_type: 'entp'
+      }
+
+      const oauthS2SCredential = {
+        id_integration: '121212',
+        id_workspace: workspaceId,
+        integration_type: 'oauth_server_to_server',
+        flow_type: 'entp'
+      }
+
+      beforeEach(() => {
+        mockConsoleSDKInstance.getCredentials.mockResolvedValue({ body: [] })
+        mockConsoleSDKInstance.createEnterpriseCredential.mockResolvedValue({
+          body: {
+            id: jwtCredential.id_integration
+          }
+        })
+        mockConsoleSDKInstance.createOAuthServerToServerCredential.mockResolvedValue({
+          body: {
+            id: oauthS2SCredential.id_integration
+          }
+        })
+      })
+
+      test('select JWT, create JWT', async () => {
+        const ret = await consoleCli.subscribeToServices(
+          orgId,
+          { id: projectId },
+          { id: workspaceId },
+          'certdir',
+          dataMocks.serviceProperties
+        )
+
+        expect(ret).toEqual(dataMocks.subscribeServicesResponse)
+        expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId
+        )
+        expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).not.toHaveBeenCalled()
+        expect(mockConsoleSDKInstance.createEnterpriseCredential).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          'fake read stream',
+          `aio-${workspaceId}`,
+          'Auto generated enterprise credentials from aio CLI'
+        )
+        expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          jwtCredential.flow_type,
+          jwtCredential.id_integration,
+          dataMocks.subscribeServicesPayload
+        )
+      })
+
+      test('select OAuth, create OAuth', async () => {
+        const ret = await consoleCli.subscribeToServicesWithCredentialType({
+          orgId,
+          project: { id: projectId },
+          workspace: { id: workspaceId },
+          credentialType: LibConsoleCli.OAUTH_SERVER_TO_SERVER_CREDENTIAL,
+          serviceProperties: dataMocks.serviceProperties
+        })
+
+        expect(ret).toEqual(dataMocks.subscribeServicesResponseOAuthServerToServer)
+        expect(mockConsoleSDKInstance.getCredentials).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId
+        )
+
+        expect(mockConsoleSDKInstance.createEnterpriseCredential).not.toHaveBeenCalled()
+        expect(mockConsoleSDKInstance.createOAuthServerToServerCredential).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          `aio-${workspaceId}`,
+          'Auto generated enterprise credentials from aio CLI'
+        )
+        expect(mockConsoleSDKInstance.subscribeCredentialToServices).toHaveBeenCalledWith(
+          orgId,
+          projectId,
+          workspaceId,
+          oauthS2SCredential.flow_type,
+          oauthS2SCredential.id_integration,
+          dataMocks.subscribeServicesPayload
+        )
+      })
     })
   })
 
