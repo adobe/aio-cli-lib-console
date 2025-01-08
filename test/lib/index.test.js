@@ -372,7 +372,7 @@ describe('instance methods tests', () => {
           orgId,
           projectId,
           workspaceId,
-          integrations[0].flow_type,
+          integrations[0].integration_type,
           integrations[0].id_integration,
           dataMocks.subscribeServicesPayload
         )
@@ -399,7 +399,7 @@ describe('instance methods tests', () => {
           orgId,
           projectId,
           workspaceId,
-          integrations[0].flow_type,
+          integrations[0].integration_type,
           integrations[0].id_integration,
           dataMocks.subscribeServicesPayload
         )
@@ -569,7 +569,7 @@ describe('instance methods tests', () => {
           orgId,
           projectId,
           workspaceId,
-          oauthS2SCredential.flow_type,
+          oauthS2SCredential.integration_type,
           oauthS2SCredential.id_integration,
           dataMocks.subscribeServicesPayload
         )
