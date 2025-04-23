@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@adobe/aio-cli-plugin-certificate": "^2",
-    "@adobe/aio-lib-console": "^5",
+    "@adobe/aio-lib-console": "^5.4.2",
     "@adobe/aio-lib-core-logging": "^3",
     "fs-extra": "^11",
     "fuzzy": "^0.1.3",
