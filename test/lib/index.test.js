@@ -201,6 +201,7 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getBindingsForWorkspace).toBe('function')
   expect(typeof consoleCli.getCertificateFingerprint).toBe('function')
   expect(typeof consoleCli.getFirstWorkspaceCredential).toBe('function')
+  expect(typeof consoleCli.getProjectNextAvailableIdentifiers).toBe('function')
   // wr console api methods
   expect(typeof consoleCli.subscribeToServices).toBe('function')
   expect(typeof consoleCli.subscribeToServicesWithCredentialType).toBe('function')
