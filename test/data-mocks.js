@@ -645,6 +645,8 @@ const applicationExtensions = {
   ]
 }
 
+const projectNextAvailableIdentifiers = { name: 'TomatoGull', title: 'Project 289' }
+
 module.exports = {
   organizations,
   projects,
@@ -668,5 +670,6 @@ module.exports = {
   promptChoices,
   baseWorkspaceEndPoints,
   multipleWorkspaceEndPoints,
-  applicationExtensions
+  applicationExtensions,
+  projectNextAvailableIdentifiers
 }

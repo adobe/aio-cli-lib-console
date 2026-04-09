@@ -19,6 +19,7 @@ const consoleSDK = require('@adobe/aio-lib-console')
 const mockConsoleSDKInstance = {
   getOrganizations: jest.fn(),
   getProjectsForOrg: jest.fn(),
+  getProjectNextAvailableIdentifiers: jest.fn(),
   getWorkspacesForProject: jest.fn(),
   getServicesForOrg: jest.fn(),
   createWorkspace: jest.fn(),
@@ -57,6 +58,7 @@ function resetMockConsoleSDK () {
 function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getOrganizations.mockResolvedValue({ body: dataMocks.organizations })
   mockConsoleSDKInstance.getProjectsForOrg.mockResolvedValue({ body: dataMocks.projects })
+  mockConsoleSDKInstance.getProjectNextAvailableIdentifiers.mockResolvedValue({ body: dataMocks.projectNextAvailableIdentifiers })
   mockConsoleSDKInstance.getWorkspacesForProject.mockResolvedValue({ body: dataMocks.workspaces })
   mockConsoleSDKInstance.getServicesForOrg.mockResolvedValue({ body: dataMocks.services })
   mockConsoleSDKInstance.getProject.mockResolvedValue({ body: dataMocks.project })
@@ -239,6 +241,14 @@ describe('instance methods tests', () => {
     const projects = await consoleCli.getProjects('orgid')
     expect(projects).toEqual(dataMocks.projects)
     expect(mockConsoleSDKInstance.getProjectsForOrg).toHaveBeenCalledWith('orgid')
+    expect(mockOraObject.start).toHaveBeenCalled()
+    expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('getProjectNextAvailableIdentifiers', async () => {
+    const data = await consoleCli.getProjectNextAvailableIdentifiers('orgid')
+    expect(data).toEqual(dataMocks.projectNextAvailableIdentifiers)
+    expect(mockConsoleSDKInstance.getProjectNextAvailableIdentifiers).toHaveBeenCalledWith('orgid')
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
   })
