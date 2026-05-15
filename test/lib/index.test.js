@@ -288,9 +288,9 @@ describe('instance methods tests', () => {
       .resolves.toEqual(dataMocks.orgFeaturesById['67891'])
   })
 
-  test('getOrganizationFeatures returns [] when the SDK throws', async () => {
+  test('getOrganizationFeatures lets SDK errors bubble', async () => {
     mockConsoleSDKInstance.getOrganizationFeatures.mockRejectedValue(new Error('boom'))
-    await expect(consoleCli.getOrganizationFeatures('67891')).resolves.toEqual([])
+    await expect(consoleCli.getOrganizationFeatures('67891')).rejects.toThrow('boom')
   })
 
   test('getOrganizationFeatures returns [] when the SDK response has no body', async () => {
