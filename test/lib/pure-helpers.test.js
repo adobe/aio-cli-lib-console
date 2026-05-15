@@ -35,7 +35,7 @@ test('exports', () => {
 })
 
 describe('orgsToPromptChoices', () => {
-  test('with input that has entp and non entp orgs', () => {
+  test('returns prompt choices for every input org (no type filtering)', () => {
     expect(helpers.orgsToPromptChoices(dataMocks.organizations))
       .toEqual(dataMocks.promptChoices.orgs)
   })

@@ -41,9 +41,29 @@ const organizations = [
     type: 'entp',
     roles: [], // no need to mock roles for now
     role: 'DEVELOPER'
+  },
+  {
+    id: '67891',
+    code: '33333333333MMMMMMMMMDDDD@AdobeOrg',
+    name: 'Trial App Builder org',
+    description: 'developer-type org with the Runtime feature',
+    type: 'developer',
+    roles: [],
+    role: 'DEVELOPER'
   }
 ]
 const org = organizations[0]
+// mocked feature-flag map keyed by org id; only orgs of type 'developer'
+// that need to appear as selectable should have RUNTIME.
+const orgFeaturesById = {
+  67891: [{ name: 'RUNTIME', description: 'OpenWhisk runtime' }]
+}
+// orgs the lib should expose to callers: entp ∪ developer-with-RUNTIME
+const selectableOrganizations = [
+  organizations[0],
+  organizations[2],
+  organizations[3]
+]
 
 const projects = [{
   name: 'myFirstProject',
@@ -501,12 +521,12 @@ const subscribeServicesResponseOAuthServerToServer = {
   sdkList: integrationOAuthServerToServer.sdkList
 }
 
-// expected prompt choices, based on data above and filters
+// expected prompt choices, based on data above and filters.
+// `orgsToPromptChoices` no longer filters by org type — that filtering now
+// happens once in `LibConsoleCLI.getOrganizations` — so the prompt choices
+// reflect every org in the input list.
 const promptChoices = {
-  orgs: [
-    { name: organizations[0].name, value: organizations[0] },
-    { name: organizations[2].name, value: organizations[2] }
-  ],
+  orgs: organizations.map(o => ({ name: o.name, value: o })),
   projects: [
     { name: projects[4].title, value: projects[4] },
     { name: projects[1].title, value: projects[1] }
@@ -647,6 +667,8 @@ const applicationExtensions = {
 
 module.exports = {
   organizations,
+  selectableOrganizations,
+  orgFeaturesById,
   projects,
   workspaces,
   org,
