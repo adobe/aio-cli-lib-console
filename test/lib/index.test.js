@@ -18,6 +18,7 @@ jest.mock('@adobe/aio-lib-console')
 const consoleSDK = require('@adobe/aio-lib-console')
 const mockConsoleSDKInstance = {
   getOrganizations: jest.fn(),
+  getOrganizationFeatures: jest.fn(),
   getProjectsForOrg: jest.fn(),
   getWorkspacesForProject: jest.fn(),
   getServicesForOrg: jest.fn(),
@@ -56,6 +57,9 @@ function resetMockConsoleSDK () {
 /** @private */
 function setDefaultMockConsoleSdk () {
   mockConsoleSDKInstance.getOrganizations.mockResolvedValue({ body: dataMocks.organizations })
+  mockConsoleSDKInstance.getOrganizationFeatures.mockImplementation(orgId => Promise.resolve({
+    body: dataMocks.orgFeaturesById[orgId] || []
+  }))
   mockConsoleSDKInstance.getProjectsForOrg.mockResolvedValue({ body: dataMocks.projects })
   mockConsoleSDKInstance.getWorkspacesForProject.mockResolvedValue({ body: dataMocks.workspaces })
   mockConsoleSDKInstance.getServicesForOrg.mockResolvedValue({ body: dataMocks.services })
@@ -189,6 +193,9 @@ test('instance methods definitions', async () => {
   expect(typeof consoleCli.getFirstEntpCredentials).toBe('function')
   expect(typeof consoleCli.getFirstOAuthServerToServerCredentials).toBe('function')
   expect(typeof consoleCli.getOrganizations).toBe('function')
+  expect(typeof consoleCli.getOrganizationFeatures).toBe('function')
+  expect(typeof consoleCli.hasOrgFeature).toBe('function')
+  expect(typeof consoleCli.filterToSelectableOrgs).toBe('function')
   expect(typeof consoleCli.getProjects).toBe('function')
   expect(typeof consoleCli.getProject).toBe('function')
   expect(typeof consoleCli.getApplicationExtensions).toBe('function')
@@ -227,12 +234,84 @@ describe('instance methods tests', () => {
     consoleCli = await LibConsoleCli.init(consoleCredentials)
   })
 
-  test('getOrganizations', async () => {
+  test('getOrganizations returns entp + developer-with-RUNTIME orgs', async () => {
     const organizations = await consoleCli.getOrganizations()
-    expect(organizations).toEqual(dataMocks.organizations)
+    expect(organizations).toEqual(dataMocks.selectableOrganizations)
     expect(mockConsoleSDKInstance.getOrganizations).toHaveBeenCalled()
+    // features endpoint should only be hit for non-entp orgs
+    expect(mockConsoleSDKInstance.getOrganizationFeatures).toHaveBeenCalledWith('55555')
+    expect(mockConsoleSDKInstance.getOrganizationFeatures).toHaveBeenCalledWith('67891')
+    expect(mockConsoleSDKInstance.getOrganizationFeatures).not.toHaveBeenCalledWith('12345')
+    expect(mockConsoleSDKInstance.getOrganizationFeatures).not.toHaveBeenCalledWith('67890')
     expect(mockOraObject.start).toHaveBeenCalled()
     expect(mockOraObject.stop).toHaveBeenCalled()
+  })
+
+  test('getOrganizations keeps developer orgs when the feature lookup throws (fail-open)', async () => {
+    mockConsoleSDKInstance.getOrganizationFeatures.mockImplementation(orgId => {
+      if (orgId === '55555') {
+        return Promise.reject(new Error('features endpoint down'))
+      }
+      return Promise.resolve({ body: dataMocks.orgFeaturesById[orgId] || [] })
+    })
+    const organizations = await consoleCli.getOrganizations()
+    // 55555 is conservatively included because we couldn't determine feature state
+    expect(organizations.map(o => o.id)).toEqual(['12345', '55555', '67890', '67891'])
+  })
+
+  test('getOrganizations excludes developer orgs without RUNTIME', async () => {
+    mockConsoleSDKInstance.getOrganizationFeatures.mockResolvedValue({ body: [] })
+    const organizations = await consoleCli.getOrganizations()
+    expect(organizations.map(o => o.id)).toEqual(['12345', '67890'])
+  })
+
+  test('getOrganizations excludes orgs whose type is neither entp nor developer', async () => {
+    mockConsoleSDKInstance.getOrganizations.mockResolvedValue({
+      body: [
+        { id: '12345', type: 'entp' },
+        { id: 'something-else', type: 'other-org-type' }
+      ]
+    })
+    const organizations = await consoleCli.getOrganizations()
+    expect(organizations.map(o => o.id)).toEqual(['12345'])
+  })
+
+  test('getOrganizations passes through empty / falsy raw responses', async () => {
+    mockConsoleSDKInstance.getOrganizations.mockResolvedValue({ body: [] })
+    await expect(consoleCli.getOrganizations()).resolves.toEqual([])
+    mockConsoleSDKInstance.getOrganizations.mockResolvedValue({ body: null })
+    await expect(consoleCli.getOrganizations()).resolves.toEqual([])
+  })
+
+  test('getOrganizationFeatures returns the body on success', async () => {
+    await expect(consoleCli.getOrganizationFeatures('67891'))
+      .resolves.toEqual(dataMocks.orgFeaturesById['67891'])
+  })
+
+  test('getOrganizationFeatures lets SDK errors bubble', async () => {
+    mockConsoleSDKInstance.getOrganizationFeatures.mockRejectedValue(new Error('boom'))
+    await expect(consoleCli.getOrganizationFeatures('67891')).rejects.toThrow('boom')
+  })
+
+  test('getOrganizationFeatures returns [] when the SDK response has no body', async () => {
+    mockConsoleSDKInstance.getOrganizationFeatures.mockResolvedValue({ body: null })
+    await expect(consoleCli.getOrganizationFeatures('67891')).resolves.toEqual([])
+  })
+
+  test('hasOrgFeature reflects RUNTIME presence', async () => {
+    await expect(consoleCli.hasOrgFeature('67891', 'RUNTIME')).resolves.toBe(true)
+    await expect(consoleCli.hasOrgFeature('55555', 'RUNTIME')).resolves.toBe(false)
+  })
+
+  test('hasOrgFeature returns false when the SDK response has no body', async () => {
+    mockConsoleSDKInstance.getOrganizationFeatures.mockResolvedValue({ body: null })
+    await expect(consoleCli.hasOrgFeature('67891', 'RUNTIME')).resolves.toBe(false)
+  })
+
+  test('hasOrgFeature returns defaultOnError when the SDK throws', async () => {
+    mockConsoleSDKInstance.getOrganizationFeatures.mockRejectedValue(new Error('boom'))
+    await expect(consoleCli.hasOrgFeature('67891', 'RUNTIME')).resolves.toBe(false)
+    await expect(consoleCli.hasOrgFeature('67891', 'RUNTIME', { defaultOnError: true })).resolves.toBe(true)
   })
 
   test('getProjects', async () => {
